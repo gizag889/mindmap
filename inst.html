@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>AIマインドマップ自動生成アプリ 開発指示書</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #2563eb; padding-bottom: 10px; color: #1e3a8a; }
+    h2 { background-color: #f3f4f6; padding: 10px; border-left: 5px solid #2563eb; margin-top: 30px; }
+    h3 { color: #2563eb; }
+    ul, ol { margin-bottom: 20px; }
+    code { background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #d97706; }
+    pre { background-color: #1e293b; color: #f8fafc; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .highlight { font-weight: bold; color: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <h1>📱 AIマインドマップ自動生成モバイルアプリ 開発指示書</h1>
+
+  <section>
+    <h2>1. プロジェクトの目的とコアバリュー</h2>
+    <p>ユーザーが入力したテキスト（チャット）から、AIが自動的にマインドマップを生成・拡張していく「モバイル特化型のアイデア出し（ブレインストーミング）アプリ」を開発する。<br>
+    直感的な操作性と、AIによる「共感・拡張型」のサポートにより、ユーザーの思考を止めずにアイデアを広げる体験を提供する。</p>
+  </section>
+
+  <section>
+    <h2>2. 指定技術スタック</h2>
+    <p>以下の技術構成を前提としてコードを生成してください。</p>
+    <ul>
+      <li><strong>フロントエンド:</strong> React Native (Expo)</li>
+      <li><strong>描画・ジェスチャー:</strong> <code>react-native-svg</code>, <code>react-native-gesture-handler</code></li>
+      <li><strong>アニメーション:</strong> <code>react-native-reanimated</code> (滑らかなトランジション必須)</li>
+      <li><strong>UIコンポーネント:</strong> <code>@gorhom/bottom-sheet</code> (チャットUI用)</li>
+      <li><strong>バックエンド・API中継:</strong> Cloudflare Workers (LLM APIへのセキュアなプロキシ)</li>
+      <li><strong>データベース:</strong> Cloudflare D1 (チャット履歴とマインドマップ構造の保存)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>3. 画面遷移とUI/UXの仕様</h2>
+    
+    <h3>フロー1：初期起動時のマジックトランジション</h3>
+    <ol>
+      <li><strong>初期画面:</strong> 通常のチャットUIのみを表示。「整理したいテーマを教えてください」とAIが尋ねる。</li>
+      <li><strong>初回入力:</strong> ユーザーが最初のテキストを送信する。</li>
+      <li><strong>遷移アニメーション:</strong> ローディング後、チャット画面がフェードアウト（または下へ沈み込む）。</li>
+      <li><strong>マップ展開:</strong> 画面中央に最初の「ルートノード（中心テーマ）」が出現し、そこから自動生成された複数の「子ノード」がアニメーションと共に枝分かれして広がる。</li>
+    </ol>
+
+    <h3>フロー2：マインドマップの表示モード切り替え</h3>
+    <p>画面上部のトグル等で以下の2モードを切り替え可能にする。</p>
+    <ul>
+      <li><strong>全体表示（俯瞰モード）:</strong> ピンチイン・アウト、スワイプでのパン操作が可能。すべてのノードとエッジを表示し、全体の広がりを把握できる。</li>
+      <li><strong>アクティブ表示（フォーカスモード）:</strong> 選択中（Active）のノードを中心に自動スクロール・ズームする。選択中ノード、その親ノード、直接の子ノードのみを強調表示し、関係のない枝は透過（opacity低下）させる。</li>
+    </ul>
+
+    <h3>フロー3：ノードタップ時のボトムシート展開</h3>
+    <ol>
+      <li>ユーザーがマップ上のノードをタップする。</li>
+      <li>画面下部から <code>@gorhom/bottom-sheet</code> を用いたチャットUIがスッと立ち上がる。画面上半分にはタップしたノードがフォーカス表示されている状態を保つ。</li>
+      <li>ボトムシート内でそのノード（文脈）に関するチャットを行う。</li>
+      <li>AIの回答完了に合わせて、フォーカスされているノードから新たな子ノードが自動的に描画・追加される。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>4. データ構造 (JSON仕様)</h2>
+    <p>バックエンドのLLM（Cloudflare Workers経由）は、テキストの回答と同時に、マップ描画用の構造化データを以下のJSON形式で返すようにシステムプロンプトを構成すること。</p>
+<pre><code>{
+  "chatResponse": "ユーザーへの自然な共感とアイデアの返答テキスト",
+  "mindMapUpdates": {
+    "nodes": [
+      {"id": "node_1", "label": "中心テーマ", "parentId": null},
+      {"id": "node_2", "label": "派生アイデアA", "parentId": "node_1"}
+    ],
+    "edges": [
+      {"source": "node_1", "target": "node_2"}
+    ]
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h2>5. AIアシスタントのキャラクター（システムプロンプト要件）</h2>
+    <p>LLMに対するシステムプロンプトには、以下の指示を厳格に含めること。</p>
+    <ul>
+      <li><strong>役割:</strong> 共感・拡張型のアシスタント。ユーザーのアイデアを絶対に否定せず、肯定から入ること。</li>
+      <li><strong>ノード生成のルール:</strong> ユーザーの抽象的な入力（例：「もっとキラキラした感じ」）を、マップに適した簡潔で構造的な単語（例：「視覚効果：ラグジュアリー」）に変換してノード化すること。</li>
+      <li><strong>拡張性:</strong> 1つの入力に対して、可能な限り自動で「3つの異なる切り口（枝）」を提案し、出力JSONに含めること。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>6. 実装の優先ステップ（Antigravityへの指示）</h2>
+    <p>まずは以下のStep 1から実装を開始し、動作確認ができるコードを出力してください。</p>
+    <ol>
+      <li><strong>Step 1:</strong> Expo環境における、<code>react-native-svg</code>と<code>react-native-reanimated</code>を用いた「ツリー構造データからのマインドマップ描画」と「ズーム/パン操作」の基礎コンポーネント作成。</li>
+      <li><strong>Step 2:</strong> <code>@gorhom/bottom-sheet</code>の導入と、ノードタップ時の連動アニメーション（フォーカス＆シート展開）の実装。</li>
+      <li><strong>Step 3:</strong> 初期画面（チャットUI）からマインドマップ画面へのトランジション実装。</li>
+      <li><strong>Step 4:</strong> Cloudflare Workersを用いた、フロントエンドからのメッセージ受け取りとダミーJSONデータを返すAPIエンドポイントの構築。</li>
+    </ol>
+  </section>
+
+</body>
+</html>
