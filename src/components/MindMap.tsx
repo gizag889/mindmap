@@ -34,6 +34,7 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
+      // savedTranslateX.value（前回ドラッグ終了時の位置）に、現在のドラッグ移動量 e.translationX を加算
       translateX.value = savedTranslateX.value + e.translationX;
       translateY.value = savedTranslateY.value + e.translationY;
     })

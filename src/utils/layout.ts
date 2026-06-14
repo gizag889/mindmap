@@ -18,6 +18,7 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
     const angleStep = (endAngle - startAngle) / children.length;
     const radius = depth * 150; // 150px per depth level
 
+    // マインドマップを**「放射状（サークル状）に自動配置するための再帰処理
     children.forEach((child, index) => {
       const childAngle = startAngle + angleStep * index + angleStep / 2;
       const childIndex = layoutedNodes.findIndex(n => n.id === child.id);
@@ -28,7 +29,7 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
         y: radius * Math.sin(childAngle),
       };
 
-      // Spread children over the allocated angle range
+      //子ノードから、さらにその先の子ノード（孫ノードなど）へ処理が進むとき、ここで角度の範囲が細かく分割されて引き渡されます。
       assignPositions(child.id, depth + 1, startAngle + angleStep * index, startAngle + angleStep * (index + 1));
     });
   };

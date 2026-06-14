@@ -5,6 +5,7 @@
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.14",
     "expo": "~56.0.11",
+    "expo-dev-client": "~56.0.20",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
     "react-native": "0.85.3",

@@ -32,13 +32,14 @@ export default function App() {
       
       // Update state with new nodes and edges
       setData(prevData => {
+        // 既存の nodes/edges と、Worker から受信した mindMapUpdates.nodes/edges をスプレッド構文で結合
         const newNodes = [...prevData.nodes, ...result.mindMapUpdates.nodes];
         const newEdges = [...prevData.edges, ...result.mindMapUpdates.edges];
         
-        // Find the root if it's the first message
+      //  ルートノードの特定: 初回であれば新規生成されたノードの最初の要素、2回目以降であれば既存の最初のノードをルートノードとして特定します。
         const rootId = !parentId ? result.mindMapUpdates.nodes[0].id : prevData.nodes[0]?.id;
         
-        // Recalculate layout
+        // 座標の再計算: 結合したノードとエッジ、およびルートノードのIDを calculateLayout 関数に渡し、各ノードの配置用座標 (x, y) を計算・付与します。
         const layoutedNodes = calculateLayout(newNodes, newEdges, rootId);
         
         return {
