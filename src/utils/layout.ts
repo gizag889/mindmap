@@ -34,7 +34,7 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
     });
   };
 
-  // Start with root, full circle
+  // ルートノードを起点に、0 から 2π（360度）の範囲で配置を開始する
   assignPositions(rootId, 1, 0, Math.PI * 2);
 
   // If there are nodes without parent (disconnected or multiple roots), we just place them randomly or skip.

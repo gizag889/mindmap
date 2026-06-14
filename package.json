@@ -4,6 +4,7 @@
   "main": "index.ts",
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.14",
+    "@tanstack/react-query": "^5.101.0",
     "expo": "~56.0.11",
     "expo-dev-client": "~56.0.20",
     "expo-status-bar": "~56.0.4",

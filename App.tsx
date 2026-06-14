@@ -1,75 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MindMap } from './src/components/MindMap';
 import { ChatSheet } from './src/components/ChatSheet';
-import { MindMapData, MindMapNode } from './src/types';
-import { calculateLayout } from './src/utils/layout';
+import { useMindMap } from './src/hooks/useMindMap';
 
-const WORKER_URL = 'http://192.168.0.20:8787'; // For device testing use your local IP e.g. http://192.168.1.x:8787
+const queryClient = new QueryClient();
 
 export default function App() {
-  const [isMapVisible, setIsMapVisible] = useState(false);
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-  const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <MainApp />
+    </QueryClientProvider>
+  );
+}
 
-  const handleSendMessage = async (message: string, parentId: string | null) => {
-    try {
-      // Simulate API call to the Worker
-      const response = await fetch(WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, parentId }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to fetch from dummy API');
-        return;
-      }
-
-      const result = await response.json();
-      
-      // Update state with new nodes and edges
-      setData(prevData => {
-        // 既存の nodes/edges と、Worker から受信した mindMapUpdates.nodes/edges をスプレッド構文で結合
-        const newNodes = [...prevData.nodes, ...result.mindMapUpdates.nodes];
-        const newEdges = [...prevData.edges, ...result.mindMapUpdates.edges];
-        
-      //  ルートノードの特定: 初回であれば新規生成されたノードの最初の要素、2回目以降であれば既存の最初のノードをルートノードとして特定します。
-        const rootId = !parentId ? result.mindMapUpdates.nodes[0].id : prevData.nodes[0]?.id;
-        
-        // 座標の再計算: 結合したノードとエッジ、およびルートノードのIDを calculateLayout 関数に渡し、各ノードの配置用座標 (x, y) を計算・付与します。
-        const layoutedNodes = calculateLayout(newNodes, newEdges, rootId);
-        
-        return {
-          nodes: layoutedNodes,
-          edges: newEdges,
-        };
-      });
-
-      if (!isMapVisible) {
-        setIsMapVisible(true);
-      }
-      
-      // Focus the node that was just added or keep the parent focused
-      // For now, if it's new, we focus the parent node to see the new children expand
-      if (parentId) {
-        setActiveNodeId(parentId);
-      } else {
-        setActiveNodeId(result.mindMapUpdates.nodes[0].id);
-      }
-
-    } catch (error) {
-      console.error('Error fetching dummy API:', error);
-    }
-  };
-
-  const handleNodePress = (id: string) => {
-    setActiveNodeId(id);
-  };
-
-  const activeNode = data.nodes.find(n => n.id === activeNodeId) || null;
+function MainApp() {
+  const {
+    data,
+    isMapVisible,
+    activeNodeId,
+    activeNode,
+    handleSendMessage,
+    handleAddManualNode,
+    handleNodePress,
+    setActiveNodeId,
+  } = useMindMap();
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -90,6 +48,7 @@ export default function App() {
       <ChatSheet
         activeNode={isMapVisible ? activeNode : null}
         onSendMessage={handleSendMessage}
+        onAddManualNode={handleAddManualNode}
         onClose={() => setActiveNodeId(null)}
       />
     </GestureHandlerRootView>

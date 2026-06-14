@@ -6,10 +6,11 @@ import { MindMapNode } from '../types';
 interface ChatSheetProps {
   activeNode: MindMapNode | null;
   onSendMessage: (message: string, parentId: string | null) => Promise<void>;
+  onAddManualNode: (label: string, parentId: string | null) => void;
   onClose: () => void;
 }
 
-export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage, onClose }) => {
+export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage, onAddManualNode, onClose }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
   const [message, setMessage] = useState('');
@@ -27,6 +28,12 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage,
     await onSendMessage(message, activeNode?.id || null);
     setMessage('');
     setIsLoading(false);
+  };
+
+  const handleManualAdd = () => {
+    if (!message.trim()) return;
+    onAddManualNode(message, activeNode?.id || null);
+    setMessage('');
   };
 
   return (
@@ -55,21 +62,30 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage,
             style={styles.input}
             value={message}
             onChangeText={setMessage}
-            placeholder="メッセージを入力..."
+            placeholder="メッセージ または ノード名..."
             placeholderTextColor="#94a3b8"
             editable={!isLoading}
           />
-          <TouchableOpacity 
-            style={[styles.sendButton, isLoading && styles.sendButtonDisabled]} 
-            onPress={handleSend}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.sendButtonText}>送信</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity 
+              style={[styles.manualButton, isLoading && styles.disabledButton]} 
+              onPress={handleManualAdd}
+              disabled={isLoading || !message.trim()}
+            >
+              <Text style={styles.manualButtonText}>＋ 手動追加</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sendButton, isLoading && styles.disabledButton]} 
+              onPress={handleSend}
+              disabled={isLoading || !message.trim()}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.sendButtonText}>AI生成</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </BottomSheetView>
     </BottomSheet>
@@ -113,19 +129,34 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginTop: 'auto',
   },
   input: {
-    flex: 1,
     backgroundColor: '#334155',
     color: '#f8fafc',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    marginRight: 12,
+    marginBottom: 12,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  manualButton: {
+    backgroundColor: '#475569',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  manualButtonText: {
+    color: '#f8fafc',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   sendButton: {
     backgroundColor: '#2563eb',
@@ -135,8 +166,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: '#475569',
+  disabledButton: {
+    opacity: 0.5,
   },
   sendButtonText: {
     color: '#ffffff',

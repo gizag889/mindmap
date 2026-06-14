@@ -87,7 +87,7 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
   return (
     <GestureDetector gesture={composed}>
       <Animated.View style={[styles.container, animatedStyle]}>
-        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
           <G x={width / 2} y={height / 2}>
             {edges.map((edge, index) => {
               const sourceNode = nodes.find(n => n.id === edge.source);
@@ -130,5 +130,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#0f172a',
+    overflow: 'visible',
   },
 });
