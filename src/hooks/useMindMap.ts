@@ -1,9 +1,44 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { MindMapData, MindMapNode } from '../types';
 import { calculateLayout } from '../utils/layout';
 
-const WORKER_URL = 'http://192.168.0.20:8787'; // For device testing use your local IP e.g. http://192.168.1.x:8787
+// 動的にホストIPを取得してWorkerのURLを設定
+const getWorkerUrl = () => {
+  if (__DEV__) {
+    let hostIp: string | null = null;
+
+    // 1. まずバンドルURLから取得を試みる
+    const scriptURL = NativeModules.SourceCode?.scriptURL;
+    if (scriptURL) {
+      const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
+      if (match && match[1]) hostIp = match[1];
+    }
+
+    // 2. 取得できない場合は Expo の設定から取得する
+    if (!hostIp) {
+      const hostUri = Constants.expoConfig?.hostUri;
+      if (hostUri) {
+        hostIp = hostUri.split(':')[0];
+      }
+    }
+
+    if (hostIp) {
+      // Androidエミュレータの場合のlocalhost変換
+      if (Platform.OS === 'android' && (hostIp === 'localhost' || hostIp === '127.0.0.1')) {
+        hostIp = '10.0.2.2';
+      }
+      return `http://${hostIp}:8787`;
+    }
+  }
+  // 全ての取得に失敗した時の最終フォールバック
+  return Platform.OS === 'android' ? 'http://10.0.2.2:8787' : 'http://localhost:8787';
+};
+
+const MINDMAP_STORAGE_KEY = '@mindmap_data';
 
 interface SendMessageParams {
   message: string;
@@ -15,10 +50,47 @@ export const useMindMap = () => {
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // 初回マウント時に AsyncStorage からデータを読み込む
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem(MINDMAP_STORAGE_KEY);
+        if (jsonValue != null) {
+          const parsedData = JSON.parse(jsonValue);
+          setData(parsedData);
+          if (parsedData.nodes && parsedData.nodes.length > 0) {
+            setIsMapVisible(true);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading mindmap data from AsyncStorage:', e);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadData();
+  }, []);
+
+  // data が更新されるたびに AsyncStorage に保存する
+  useEffect(() => {
+    if (!isLoaded) return; // 初回読み込み完了前は保存しない（空データでの上書き防止）
+    const saveData = async () => {
+      try {
+        const jsonValue = JSON.stringify(data);
+        await AsyncStorage.setItem(MINDMAP_STORAGE_KEY, jsonValue);
+      } catch (e) {
+        console.error('Error saving mindmap data to AsyncStorage:', e);
+      }
+    };
+    saveData();
+  }, [data, isLoaded]);
 
   const mutation = useMutation({
     mutationFn: async ({ message, parentId, parentContext }: SendMessageParams) => {
-      const response = await fetch(WORKER_URL, {
+      const url = getWorkerUrl();
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, parentId, parentContext }),
