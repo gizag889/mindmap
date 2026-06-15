@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform } from 'react-native';
@@ -203,11 +203,30 @@ export const useMindMap = () => {
 
   const activeNode = data.nodes.find(n => n.id === activeNodeId) || null;
 
+  const activeNodePath = useMemo(() => {
+    if (!activeNodeId) return [];
+    const path: MindMapNode[] = [];
+    let currentId: string | null | undefined = activeNodeId;
+    const visited = new Set<string>();
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const node = data.nodes.find(n => n.id === currentId);
+      if (node) {
+        path.unshift(node);
+        currentId = node.parentId;
+      } else {
+        break;
+      }
+    }
+    return path;
+  }, [activeNodeId, data.nodes]);
+
   return {
     data,
     isMapVisible,
     activeNodeId,
     activeNode,
+    activeNodePath,
     handleSendMessage,
     handleAddManualNode,
     handleNodePress,

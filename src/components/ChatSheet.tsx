@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView } from 'react-native';
 import { MindMapNode } from '../types';
 
 interface ChatSheetProps {
   activeNode: MindMapNode | null;
+  activeNodePath?: MindMapNode[];
   onSendMessage: (message: string, parentId: string | null) => Promise<void>;
   onAddManualNode: (label: string, parentId: string | null) => void;
   onClose: () => void;
+  onNodePress?: (id: string) => void;
 }
 
-export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage, onAddManualNode, onClose }) => {
+export const ChatSheet: React.FC<ChatSheetProps> = ({
+  activeNode,
+  activeNodePath = [],
+  onSendMessage,
+  onAddManualNode,
+  onClose,
+  onNodePress,
+}) => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,9 +46,36 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage,
         <View style={styles.floatingContainer}>
           {activeNode && (
             <View style={styles.activeNodeIndicator}>
-              <Text style={styles.activeNodeText}>
-                <Text style={{ color: '#94a3b8' }}>Focus:</Text> {activeNode.label}
-              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.breadcrumbContainer}
+                style={{ flex: 1 }}
+              >
+                {activeNodePath.map((node, index) => {
+                  const isLast = index === activeNodePath.length - 1;
+                  return (
+                    <View key={node.id} style={styles.breadcrumbItemWrapper}>
+                      <TouchableOpacity
+                        onPress={() => onNodePress && onNodePress(node.id)}
+                        disabled={isLast || !onNodePress}
+                        style={styles.breadcrumbTouch}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[
+                          styles.breadcrumbText,
+                          isLast && styles.breadcrumbActiveText
+                        ]} numberOfLines={1}>
+                          {node.label}
+                        </Text>
+                      </TouchableOpacity>
+                      {!isLast && (
+                        <Text style={styles.breadcrumbSeparator}>&gt;</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </ScrollView>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
@@ -119,17 +155,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 4,
     paddingTop: 4,
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
     marginBottom: 8,
   },
-  activeNodeText: {
+  breadcrumbContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 8,
+  },
+  breadcrumbItemWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  breadcrumbTouch: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+  },
+  breadcrumbText: {
+    color: '#94a3b8',
+    fontSize: 13,
+  },
+  breadcrumbActiveText: {
     color: '#60a5fa',
-    fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
+  },
+  breadcrumbSeparator: {
+    color: '#475569',
+    fontSize: 12,
+    marginHorizontal: 1,
   },
   closeButton: {
     padding: 4,

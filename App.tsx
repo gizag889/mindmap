@@ -23,6 +23,7 @@ function MainApp() {
     isMapVisible,
     activeNodeId,
     activeNode,
+    activeNodePath,
     handleSendMessage,
     handleAddManualNode,
     handleNodePress,
@@ -47,9 +48,11 @@ function MainApp() {
       </View>
       <ChatSheet
         activeNode={isMapVisible ? activeNode : null}
+        activeNodePath={isMapVisible ? activeNodePath : []}
         onSendMessage={handleSendMessage}
         onAddManualNode={handleAddManualNode}
         onClose={() => setActiveNodeId(null)}
+        onNodePress={handleNodePress}
       />
     </GestureHandlerRootView>
   );
