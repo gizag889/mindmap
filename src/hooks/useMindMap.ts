@@ -8,6 +8,7 @@ const WORKER_URL = 'http://192.168.0.20:8787'; // For device testing use your lo
 interface SendMessageParams {
   message: string;
   parentId: string | null;
+  parentContext?: string;
 }
 
 export const useMindMap = () => {
@@ -16,11 +17,11 @@ export const useMindMap = () => {
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
 
   const mutation = useMutation({
-    mutationFn: async ({ message, parentId }: SendMessageParams) => {
+    mutationFn: async ({ message, parentId, parentContext }: SendMessageParams) => {
       const response = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, parentId }),
+        body: JSON.stringify({ message, parentId, parentContext }),
       });
 
       if (!response.ok) {
@@ -68,12 +69,28 @@ export const useMindMap = () => {
 
   const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
     try {
-      await mutation.mutateAsync({ message, parentId });
+      let parentContext = '';
+      if (parentId) {
+        const contextNodes = [];
+        let currentId: string | null | undefined = parentId;
+        while (currentId) {
+          const node = data.nodes.find(n => n.id === currentId);
+          if (node) {
+            contextNodes.unshift(node.label);
+            //インドマップのツリー構造を**「子ノードから親ノードへと上に向かって遡る（トラバースする）」**ためのポインタの更新処理
+            currentId = node.parentId;
+          } else {
+            break;
+          }
+        }
+        parentContext = contextNodes.join(" > ");
+      }
+      await mutation.mutateAsync({ message, parentId, parentContext });
     } catch (error) {
       // Error is already logged in onError, but we throw or swallow here to prevent unhandled promise rejection
       // The component (ChatSheet) also wraps the call in a try/catch or handles it.
     }
-  }, [mutation]);
+  }, [mutation, data.nodes]);
 
   const handleAddManualNode = useCallback((label: string, parentId: string | null) => {
     if (!label.trim()) return;

@@ -2,12 +2,13 @@ import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Svg, G } from 'react-native-svg';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedProps, useSharedValue, withSpring } from 'react-native-reanimated';
 import { MindMapNode, MindMapEdge } from '../types';
 import { Node } from './Node';
 import { Edge } from './Edge';
 
 const { width, height } = Dimensions.get('window');
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface MindMapProps {
   nodes: MindMapNode[];
@@ -45,13 +46,11 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
 
   const composed = Gesture.Simultaneous(pinchGesture, panGesture);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+  const animatedProps = useAnimatedProps(() => ({
     transform: [
       { translateX: translateX.value },
       { translateY: translateY.value },
       { scale: scale.value },
-      { translateX: -width / 2 },
-      { translateY: -height / 2 },
     ],
   }));
 
@@ -86,9 +85,9 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
 
   return (
     <GestureDetector gesture={composed}>
-      <Animated.View style={[styles.container, animatedStyle]}>
-        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
-          <G x={width / 2} y={height / 2}>
+      <View style={styles.container}>
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          <AnimatedG animatedProps={animatedProps}>
             {edges.map((edge, index) => {
               const sourceNode = nodes.find(n => n.id === edge.source);
               const targetNode = nodes.find(n => n.id === edge.target);
@@ -117,9 +116,9 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
                 onPress={onNodePress}
               />
             ))}
-          </G>
+          </AnimatedG>
         </Svg>
-      </Animated.View>
+      </View>
     </GestureDetector>
   );
 };
@@ -130,6 +129,5 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#0f172a',
-    overflow: 'visible',
   },
 });

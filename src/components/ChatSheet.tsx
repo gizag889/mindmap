@@ -1,6 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import BottomSheet, { BottomSheetView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { MindMapNode } from '../types';
 
 interface ChatSheetProps {
@@ -11,16 +10,8 @@ interface ChatSheetProps {
 }
 
 export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage, onAddManualNode, onClose }) => {
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-    }
-  }, [onClose]);
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -37,141 +28,156 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({ activeNode, onSendMessage,
   };
 
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={1}
-      snapPoints={snapPoints}
-      onChange={handleSheetChanges}
-      enablePanDownToClose
-      backgroundStyle={styles.background}
-      handleIndicatorStyle={styles.indicator}
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      pointerEvents="box-none"
     >
-      <BottomSheetView style={styles.contentContainer}>
-        {activeNode && (
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Focused: {activeNode.label}</Text>
+      <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
+        <View style={styles.floatingContainer}>
+          {activeNode && (
+            <View style={styles.activeNodeIndicator}>
+              <Text style={styles.activeNodeText}>
+                <Text style={{ color: '#94a3b8' }}>Focus:</Text> {activeNode.label}
+              </Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          <View style={styles.searchBar}>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              placeholder={activeNode ? "ノードを追加・深掘り..." : "テーマを入力してマップ生成..."}
+              placeholderTextColor="#94a3b8"
+              editable={!isLoading}
+              onSubmitEditing={handleSend}
+            />
+            
+            {isLoading ? (
+              <View style={styles.actionButton}>
+                <ActivityIndicator color="#60a5fa" size="small" />
+              </View>
+            ) : (
+              <View style={styles.buttonGroup}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !message.trim() && styles.disabledButton]} 
+                  onPress={handleManualAdd}
+                  disabled={!message.trim()}
+                >
+                  <Text style={styles.actionButtonText}>＋</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.primaryButton, !message.trim() && styles.disabledButton]} 
+                  onPress={handleSend}
+                  disabled={!message.trim()}
+                >
+                  <Text style={styles.primaryButtonText}>AI</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
-        <View style={styles.chatArea}>
-          <Text style={styles.chatPrompt}>
-            {activeNode ? 'このアイデアについて深掘りしましょう。' : '整理したいテーマを教えてください。'}
-          </Text>
         </View>
-        <View style={styles.inputContainer}>
-          <BottomSheetTextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="メッセージ または ノード名..."
-            placeholderTextColor="#94a3b8"
-            editable={!isLoading}
-          />
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity 
-              style={[styles.manualButton, isLoading && styles.disabledButton]} 
-              onPress={handleManualAdd}
-              disabled={isLoading || !message.trim()}
-            >
-              <Text style={styles.manualButtonText}>＋ 手動追加</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.sendButton, isLoading && styles.disabledButton]} 
-              onPress={handleSend}
-              disabled={isLoading || !message.trim()}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.sendButtonText}>AI生成</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </BottomSheetView>
-    </BottomSheet>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
-    backgroundColor: 'rgba(30, 41, 59, 0.95)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  container: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'flex-end',
   },
-  indicator: {
-    backgroundColor: '#cbd5e1',
-  },
-  contentContainer: {
+  safeArea: {
     flex: 1,
-    padding: 16,
-    paddingBottom: 40,
+    justifyContent: 'flex-end',
   },
-  header: {
-    marginBottom: 16,
+  floatingContainer: {
+    marginHorizontal: 16,
+    marginBottom: 24, // Androidのホーム画面の検索バーのようなマージン
+    backgroundColor: '#1e293b',
+    borderRadius: 24,
+    padding: 8,
+    // iOS Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    // Android Shadow
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  activeNodeIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 4,
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
+    marginBottom: 8,
   },
-  headerText: {
+  activeNodeText: {
     color: '#60a5fa',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  closeButtonText: {
+    color: '#94a3b8',
+    fontSize: 14,
     fontWeight: 'bold',
   },
-  chatArea: {
-    flex: 1,
-    justifyContent: 'center',
+  searchBar: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  chatPrompt: {
-    color: '#f8fafc',
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  inputContainer: {
-    marginTop: 'auto',
+    paddingHorizontal: 8,
   },
   input: {
-    backgroundColor: '#334155',
+    flex: 1,
     color: '#f8fafc',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     fontSize: 16,
-    marginBottom: 12,
+    paddingVertical: 8,
+    minHeight: 40,
   },
   buttonGroup: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
   },
-  manualButton: {
-    backgroundColor: '#475569',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#334155',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  manualButtonText: {
-    color: '#f8fafc',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  sendButton: {
+  primaryButton: {
     backgroundColor: '#2563eb',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   disabledButton: {
     opacity: 0.5,
-  },
-  sendButtonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
 });
