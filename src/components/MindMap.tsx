@@ -2,7 +2,7 @@ import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Svg, G } from 'react-native-svg';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, { useAnimatedProps, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedProps, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
 import { MindMapNode, MindMapEdge } from '../types';
 import { Node } from './Node';
 import { Edge } from './Edge';
@@ -44,7 +44,43 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
       savedTranslateY.value = translateY.value;
     });
 
-  const composed = Gesture.Simultaneous(pinchGesture, panGesture);
+  const tapGesture = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd((e) => {
+      const tapX = e.x;
+      const tapY = e.y;
+
+      // Translate screen coordinates to canvas coordinates based on pan & zoom scale
+      const canvasX = (tapX - translateX.value) / scale.value;
+      const canvasY = (tapY - translateY.value) / scale.value;
+
+      // Padded hitbox dimensions for nodes (standard dimensions: width 120, height 40)
+      const hitWidth = 140;
+      const hitHeight = 60;
+
+      let clickedNodeId: string | null = null;
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const nx = node.x || 0;
+        const ny = node.y || 0;
+
+        if (
+          canvasX >= nx - hitWidth / 2 &&
+          canvasX <= nx + hitWidth / 2 &&
+          canvasY >= ny - hitHeight / 2 &&
+          canvasY <= ny + hitHeight / 2
+        ) {
+          clickedNodeId = node.id;
+          break;
+        }
+      }
+
+      if (clickedNodeId !== null) {
+        onNodePress(clickedNodeId);
+      }
+    });
+
+  const composed = Gesture.Simultaneous(pinchGesture, panGesture, tapGesture);
 
   const animatedProps = useAnimatedProps(() => ({
     transform: [
@@ -113,7 +149,6 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
                 x={node.x || 0}
                 y={node.y || 0}
                 isActive={isNodeActive(node.id)}
-                onPress={onNodePress}
               />
             ))}
           </AnimatedG>

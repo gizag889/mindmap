@@ -3,7 +3,6 @@ import { G, Rect, Text } from 'react-native-svg';
 import Animated, { useAnimatedProps, withSpring } from 'react-native-reanimated';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 interface NodeProps {
   id: string;
@@ -11,38 +10,45 @@ interface NodeProps {
   x: number;
   y: number;
   isActive: boolean;
-  onPress: (id: string) => void;
 }
 
-export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, onPress }) => {
+export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive }) => {
   const animatedProps = useAnimatedProps(() => {
     return {
       x: withSpring(x),
       y: withSpring(y),
-      opacity: withSpring(isActive ? 1 : 0.4),
-      scale: withSpring(isActive ? 1.1 : 1),
+      scale: withSpring(isActive ? 1.1 : 0.95),
     };
   }, [x, y, isActive]);
 
   const width = 120;
   const height = 40;
 
+  // 活性・非活性に応じたスタイルの決定
+  const rectFill = isActive ? "#1e3a8a" : "#1e293b";
+  const rectStroke = isActive ? "#60a5fa" : "#334155";
+  const strokeWidth = isActive ? 3 : 1;
+  const textColor = isActive ? "#ffffff" : "#94a3b8";
+
   return (
-    <AnimatedG animatedProps={animatedProps} onPress={() => onPress(id)}>
-      <AnimatedRect
+    <AnimatedG 
+      animatedProps={animatedProps} 
+      pointerEvents="none"
+    >
+      <Rect
         x={-width / 2}
         y={-height / 2}
         width={width}
         height={height}
         rx="20"
-        fill="#1e3a8a"
-        stroke={isActive ? "#60a5fa" : "transparent"}
-        strokeWidth="3"
+        fill={rectFill}
+        stroke={rectStroke}
+        strokeWidth={strokeWidth}
       />
       <Text
-        fill="#ffffff"
+        fill={textColor}
         fontSize="12"
-        fontWeight="bold"
+        fontWeight={isActive ? "bold" : "normal"}
         textAnchor="middle"
         alignmentBaseline="middle"
       >

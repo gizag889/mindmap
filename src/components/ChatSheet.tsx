@@ -19,14 +19,28 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onClose,
   onNodePress,
 }) => {
+  const draftsRef = React.useRef<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentNodeId = activeNode?.id || 'root';
+
+  // ノード選択切り替え時に、下書きメッセージをロードする
+  React.useEffect(() => {
+    setMessage(draftsRef.current[currentNodeId] || '');
+  }, [currentNodeId]);
+
+  const handleMessageChange = (text: string) => {
+    setMessage(text);
+    draftsRef.current[currentNodeId] = text;
+  };
 
   const handleSend = async () => {
     if (!message.trim()) return;
     setIsLoading(true);
     await onSendMessage(message, activeNode?.id || null);
     setMessage('');
+    draftsRef.current[currentNodeId] = '';
     setIsLoading(false);
   };
 
@@ -34,6 +48,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     if (!message.trim()) return;
     onAddManualNode(message, activeNode?.id || null);
     setMessage('');
+    draftsRef.current[currentNodeId] = '';
   };
 
   return (
@@ -86,7 +101,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
             <TextInput
               style={styles.input}
               value={message}
-              onChangeText={setMessage}
+              onChangeText={handleMessageChange}
               placeholder={activeNode ? "ノードを追加・深掘り..." : "テーマを入力してマップ生成..."}
               placeholderTextColor="#94a3b8"
               editable={!isLoading}
