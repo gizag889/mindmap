@@ -7,6 +7,7 @@ interface ChatSheetProps {
   activeNodePath?: MindMapNode[];
   onSendMessage: (message: string, parentId: string | null) => Promise<void>;
   onAddManualNode: (label: string, parentId: string | null) => void;
+  onEditNote?: () => void;
   onClose: () => void;
   onNodePress?: (id: string) => void;
 }
@@ -16,6 +17,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   activeNodePath = [],
   onSendMessage,
   onAddManualNode,
+  onEditNote,
   onClose,
   onNodePress,
 }) => {
@@ -114,6 +116,13 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
               </View>
             ) : (
               <View style={styles.buttonGroup}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !activeNode && styles.disabledButton]} 
+                  onPress={onEditNote}
+                  disabled={!activeNode}
+                >
+                  <Text style={styles.actionButtonText}>📝</Text>
+                </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.actionButton, !message.trim() && styles.disabledButton]} 
                   onPress={handleManualAdd}

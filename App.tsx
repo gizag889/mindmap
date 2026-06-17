@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MindMap } from './src/components/MindMap';
 import { ChatSheet } from './src/components/ChatSheet';
+import { NoteModal } from './src/components/NoteModal';
 import { useMindMap } from './src/hooks/useMindMap';
 
 const queryClient = new QueryClient();
@@ -18,6 +19,7 @@ export default function App() {
 }
 
 function MainApp() {
+  const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
   const {
     data,
     isMapVisible,
@@ -26,6 +28,7 @@ function MainApp() {
     activeNodePath,
     handleSendMessage,
     handleAddManualNode,
+    handleUpdateNodeNote,
     handleNodePress,
     setActiveNodeId,
   } = useMindMap();
@@ -51,8 +54,16 @@ function MainApp() {
         activeNodePath={isMapVisible ? activeNodePath : []}
         onSendMessage={handleSendMessage}
         onAddManualNode={handleAddManualNode}
+        onEditNote={() => setIsNoteModalVisible(true)}
         onClose={() => setActiveNodeId(null)}
         onNodePress={handleNodePress}
+      />
+      <NoteModal
+        visible={isNoteModalVisible}
+        node={activeNode}
+        activeNodePath={isMapVisible ? activeNodePath : []}
+        onSave={handleUpdateNodeNote}
+        onClose={() => setIsNoteModalVisible(false)}
       />
     </GestureHandlerRootView>
   );

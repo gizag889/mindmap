@@ -221,6 +221,18 @@ export const useMindMap = () => {
     return path;
   }, [activeNodeId, data.nodes]);
 
+  const handleUpdateNodeNote = useCallback((id: string, note: string) => {
+    setData(prevData => {
+      const newNodes = prevData.nodes.map(node =>
+        node.id === id ? { ...node, note } : node
+      );
+      return {
+        ...prevData,
+        nodes: newNodes,
+      };
+    });
+  }, []);
+
   return {
     data,
     isMapVisible,
@@ -229,6 +241,7 @@ export const useMindMap = () => {
     activeNodePath,
     handleSendMessage,
     handleAddManualNode,
+    handleUpdateNodeNote,
     handleNodePress,
     setActiveNodeId,
     isGenerating: mutation.isPending,

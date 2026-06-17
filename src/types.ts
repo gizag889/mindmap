@@ -4,6 +4,7 @@ export interface MindMapNode {
   parentId: string | null;
   x?: number;
   y?: number;
+  note?: string;
 }
 
 export interface MindMapEdge {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { G, Rect, Text } from 'react-native-svg';
+import { G, Rect, Text, Circle } from 'react-native-svg';
 import Animated, { useAnimatedProps, withSpring } from 'react-native-reanimated';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -10,9 +10,10 @@ interface NodeProps {
   x: number;
   y: number;
   isActive: boolean;
+  hasNote?: boolean;
 }
 
-export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive }) => {
+export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote }) => {
   const animatedProps = useAnimatedProps(() => {
     return {
       x: withSpring(x),
@@ -54,6 +55,11 @@ export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive }) => {
       >
         {label}
       </Text>
+      {hasNote && (
+        <G x={width / 2 - 10} y={-height / 2 + 10}>
+          <Circle r="4" fill="#60a5fa" />
+        </G>
+      )}
     </AnimatedG>
   );
 };
