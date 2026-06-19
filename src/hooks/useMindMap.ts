@@ -51,6 +51,7 @@ export const useMindMap = () => {
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
 
   // 初回マウント時に AsyncStorage からデータを読み込む
   useEffect(() => {
@@ -164,6 +165,77 @@ export const useMindMap = () => {
     }
   }, [mutation, data.nodes]);
 
+  const handleSendNoteChat = useCallback(async (message: string, nodeId: string) => {
+    const node = data.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    const contextNodes = [];
+    let currentId: string | null | undefined = nodeId;
+    while (currentId) {
+      const n = data.nodes.find(x => x.id === currentId);
+      if (n) {
+        contextNodes.unshift(n.label);
+        currentId = n.parentId;
+      } else {
+        break;
+      }
+    }
+    const parentContext = contextNodes.join(" > ");
+    const noteContent = node.note || '';
+    const currentHistory = node.chatHistory || [];
+
+    // Optimistic Update
+    setData(prevData => {
+      const newNodes = prevData.nodes.map(n => 
+        n.id === nodeId ? { ...n, chatHistory: [...(n.chatHistory || []), { role: 'user' as const, text: message }] } : n
+      );
+      return { ...prevData, nodes: newNodes };
+    });
+
+    setIsNoteChatLoading(true);
+    try {
+      const url = getWorkerUrl();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          parentId: nodeId,
+          parentContext,
+          chatMode: true,
+          noteContent,
+          chatHistory: currentHistory
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch chat response');
+      }
+
+      const result = await response.json();
+      const chatResponse = result.chatResponse;
+
+      // Add AI response
+      setData(prevData => {
+        const newNodes = prevData.nodes.map(n => 
+          n.id === nodeId ? { ...n, chatHistory: [...(n.chatHistory || []), { role: 'ai' as const, text: chatResponse }] } : n
+        );
+        return { ...prevData, nodes: newNodes };
+      });
+    } catch (error) {
+      console.error('Error fetching note chat:', error);
+      // Revert optimistic update
+      setData(prevData => {
+        const newNodes = prevData.nodes.map(n => 
+          n.id === nodeId ? { ...n, chatHistory: currentHistory } : n
+        );
+        return { ...prevData, nodes: newNodes };
+      });
+    } finally {
+      setIsNoteChatLoading(false);
+    }
+  }, [data.nodes]);
+
   const handleAddManualNode = useCallback((label: string, parentId: string | null) => {
     if (!label.trim()) return;
     
@@ -240,11 +312,13 @@ export const useMindMap = () => {
     activeNode,
     activeNodePath,
     handleSendMessage,
+    handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
     handleNodePress,
     setActiveNodeId,
     isGenerating: mutation.isPending,
+    isNoteChatLoading,
     generationError: mutation.error,
   };
 };

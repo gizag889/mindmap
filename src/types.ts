@@ -1,3 +1,8 @@
+export interface ChatMessage {
+  role: 'user' | 'ai';
+  text: string;
+}
+
 export interface MindMapNode {
   id: string;
   label: string;
@@ -5,6 +10,7 @@ export interface MindMapNode {
   x?: number;
   y?: number;
   note?: string;
+  chatHistory?: ChatMessage[];
 }
 
 export interface MindMapEdge {

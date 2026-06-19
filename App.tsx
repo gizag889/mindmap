@@ -27,10 +27,12 @@ function MainApp() {
     activeNode,
     activeNodePath,
     handleSendMessage,
+    handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
     handleNodePress,
     setActiveNodeId,
+    isNoteChatLoading,
   } = useMindMap();
 
   return (
@@ -64,6 +66,8 @@ function MainApp() {
         activeNodePath={isMapVisible ? activeNodePath : []}
         onSave={handleUpdateNodeNote}
         onClose={() => setIsNoteModalVisible(false)}
+        onSendChat={handleSendNoteChat}
+        isChatLoading={isNoteChatLoading}
       />
     </GestureHandlerRootView>
   );
