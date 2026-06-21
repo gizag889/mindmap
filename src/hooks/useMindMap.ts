@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { MindMapData, MindMapNode } from '../types';
+import { MindMapData, MindMapNode, MindMapPage } from '../types';
 import { calculateLayout } from '../utils/layout';
 
 // 動的にホストIPを取得してWorkerのURLを設定
@@ -46,47 +46,65 @@ interface SendMessageParams {
   parentContext?: string;
 }
 
-export const useMindMap = () => {
+export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, updates: Partial<MindMapPage>) => void) => {
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
 
-  // 初回マウント時に AsyncStorage からデータを読み込む
   useEffect(() => {
+    if (!pageId) {
+      setData({ nodes: [], edges: [] });
+      setIsMapVisible(false);
+      setActiveNodeId(null);
+      setIsLoaded(true);
+      return;
+    }
+
     const loadData = async () => {
+      setIsLoaded(false);
       try {
-        const jsonValue = await AsyncStorage.getItem(MINDMAP_STORAGE_KEY);
+        const jsonValue = await AsyncStorage.getItem(`@mindmap_data_${pageId}`);
         if (jsonValue != null) {
           const parsedData = JSON.parse(jsonValue);
           setData(parsedData);
           if (parsedData.nodes && parsedData.nodes.length > 0) {
             setIsMapVisible(true);
+          } else {
+            setIsMapVisible(false);
           }
+        } else {
+          setData({ nodes: [], edges: [] });
+          setIsMapVisible(false);
         }
       } catch (e) {
         console.error('Error loading mindmap data from AsyncStorage:', e);
       } finally {
         setIsLoaded(true);
+        setActiveNodeId(null);
       }
     };
     loadData();
-  }, []);
+  }, [pageId]);
 
-  // data が更新されるたびに AsyncStorage に保存する
   useEffect(() => {
-    if (!isLoaded) return; // 初回読み込み完了前は保存しない（空データでの上書き防止）
+    if (!isLoaded || !pageId) return;
     const saveData = async () => {
       try {
         const jsonValue = JSON.stringify(data);
-        await AsyncStorage.setItem(MINDMAP_STORAGE_KEY, jsonValue);
+        await AsyncStorage.setItem(`@mindmap_data_${pageId}`, jsonValue);
+        
+        if (data.nodes.length > 0 && onUpdatePage) {
+          const rootNode = data.nodes.find(n => !n.parentId) || data.nodes[0];
+          onUpdatePage(pageId, { title: rootNode.label, updatedAt: Date.now() });
+        }
       } catch (e) {
         console.error('Error saving mindmap data to AsyncStorage:', e);
       }
     };
     saveData();
-  }, [data, isLoaded]);
+  }, [data, isLoaded, pageId]);
 
   const mutation = useMutation({
     mutationFn: async ({ message, parentId, parentContext }: SendMessageParams) => {

@@ -22,3 +22,10 @@ export interface MindMapData {
   nodes: MindMapNode[];
   edges: MindMapEdge[];
 }
+
+export interface MindMapPage {
+  id: string;
+  title: string;
+  updatedAt: number;
+  createdAt: number;
+}
