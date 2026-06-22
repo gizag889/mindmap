@@ -2,10 +2,13 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList } from 'react-native';
 import Animated, { SlideInLeft, SlideOutLeft } from 'react-native-reanimated';
 import { MindMapPage } from '../types';
+import { AiMode } from '../hooks/useSettings';
 
 interface SidebarProps {
   pages: MindMapPage[];
   activePageId: string | null;
+  aiMode: AiMode;
+  onModeChange: (mode: AiMode) => void;
   onSelectPage: (id: string) => void;
   onCreatePage: () => void;
   onDeletePage: (id: string) => void;
@@ -15,6 +18,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   pages,
   activePageId,
+  aiMode,
+  onModeChange,
   onSelectPage,
   onCreatePage,
   onDeletePage,
@@ -69,6 +74,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         }}
       />
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>AIモード設定</Text>
+        <TouchableOpacity 
+          style={[styles.modeButton, aiMode === 'flash' && styles.activeModeButton]}
+          onPress={() => onModeChange('flash')}
+        >
+          <Text style={[styles.modeButtonText, aiMode === 'flash' && styles.activeModeText]}>
+            ⚡ 高速 / アイデア量産
+          </Text>
+          <Text style={styles.modeSubText}>gemini-3.5-flash</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.modeButton, aiMode === 'pro' && styles.activeModeButton]}
+          onPress={() => onModeChange('pro')}
+        >
+          <Text style={[styles.modeButtonText, aiMode === 'pro' && styles.activeModeText]}>
+            🧠 深掘り / 構造化アシスト
+          </Text>
+          <Text style={styles.modeSubText}>gemini-3.1-pro-preview</Text>
+        </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 };
@@ -159,5 +187,44 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 16,
+  },
+  settingsSection: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+    backgroundColor: '#0f172a',
+  },
+  sectionTitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  modeButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 8,
+  },
+  activeModeButton: {
+    borderColor: '#60a5fa',
+    backgroundColor: '#1e293b',
+  },
+  modeButtonText: {
+    color: '#cbd5e1',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  activeModeText: {
+    color: '#60a5fa',
+  },
+  modeSubText: {
+    color: '#64748b',
+    fontSize: 10,
   },
 });

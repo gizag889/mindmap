@@ -44,9 +44,14 @@ interface SendMessageParams {
   message: string;
   parentId: string | null;
   parentContext?: string;
+  model: string;
 }
 
-export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, updates: Partial<MindMapPage>) => void) => {
+export const useMindMap = (
+  pageId: string | null,
+  onUpdatePage?: (id: string, updates: Partial<MindMapPage>) => void,
+  aiMode: 'flash' | 'pro' = 'flash'
+) => {
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
@@ -107,12 +112,12 @@ export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, up
   }, [data, isLoaded, pageId]);
 
   const mutation = useMutation({
-    mutationFn: async ({ message, parentId, parentContext }: SendMessageParams) => {
+    mutationFn: async ({ message, parentId, parentContext, model }: SendMessageParams) => {
       const url = getWorkerUrl();
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, parentId, parentContext }),
+        body: JSON.stringify({ message, parentId, parentContext, model }),
       });
 
       if (!response.ok) {
@@ -160,6 +165,7 @@ export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, up
 
   const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
     try {
+      const model = aiMode === 'pro' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
       let parentContext = '';
       if (parentId) {
         const contextNodes = [];
@@ -176,7 +182,7 @@ export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, up
         }
         parentContext = contextNodes.join(" > ");
       }
-      await mutation.mutateAsync({ message, parentId, parentContext });
+      await mutation.mutateAsync({ message, parentId, parentContext, model });
     } catch (error) {
       // Error is already logged in onError, but we throw or swallow here to prevent unhandled promise rejection
       // The component (ChatSheet) also wraps the call in a try/catch or handles it.
@@ -212,6 +218,7 @@ export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, up
 
     setIsNoteChatLoading(true);
     try {
+      const model = aiMode === 'pro' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
       const url = getWorkerUrl();
       const response = await fetch(url, {
         method: 'POST',
@@ -222,7 +229,8 @@ export const useMindMap = (pageId: string | null, onUpdatePage?: (id: string, up
           parentContext,
           chatMode: true,
           noteContent,
-          chatHistory: currentHistory
+          chatHistory: currentHistory,
+          model
         }),
       });
 

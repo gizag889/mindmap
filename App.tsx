@@ -9,6 +9,7 @@ import { NoteModal } from './src/components/NoteModal';
 import { Sidebar } from './src/components/Sidebar';
 import { useMindMap } from './src/hooks/useMindMap';
 import { useMindMapPages } from './src/hooks/useMindMapPages';
+import { useSettings } from './src/hooks/useSettings';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,8 @@ function MainApp() {
     isLoaded: isPagesLoaded
   } = useMindMapPages();
 
+  const { settings, updateSettings, isLoaded: isSettingsLoaded } = useSettings();
+
   const {
     data,
     isMapVisible,
@@ -47,7 +50,7 @@ function MainApp() {
     handleNodePress,
     setActiveNodeId,
     isNoteChatLoading,
-  } = useMindMap(activePageId, updatePage);
+  } = useMindMap(activePageId, updatePage, settings.aiMode);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -85,7 +88,7 @@ function MainApp() {
           </View>
         )}
       </View>
-      {isMapVisible && activePageId && (
+      {!!activePageId && (
         <ChatSheet
           activeNode={isMapVisible ? activeNode : null}
           activeNodePath={isMapVisible ? activeNodePath : []}
@@ -111,6 +114,8 @@ function MainApp() {
         <Sidebar
           pages={pages}
           activePageId={activePageId}
+          aiMode={settings.aiMode}
+          onModeChange={(mode) => updateSettings({ aiMode: mode })}
           onSelectPage={(id) => {
             setActivePageId(id);
             setIsSidebarVisible(false);
