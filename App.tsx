@@ -48,6 +48,7 @@ function MainApp() {
     handleAddManualNode,
     handleUpdateNodeNote,
     handleNodePress,
+    handleDeleteNode,
     setActiveNodeId,
     isNoteChatLoading,
   } = useMindMap(activePageId, updatePage, settings.aiMode);
@@ -71,6 +72,7 @@ function MainApp() {
               edges={data.edges}
               activeNodeId={activeNodeId}
               onNodePress={handleNodePress}
+              onNodeLongPress={handleDeleteNode}
             />
           </Animated.View>
         ) : (

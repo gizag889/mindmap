@@ -22,7 +22,12 @@ export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote }
     };
   }, [x, y, isActive]);
 
-  const width = 120;
+  // 長すぎるラベルを省略（最大20文字）
+  const MAX_CHARS = 20;
+  const displayLabel = label.length > MAX_CHARS ? label.slice(0, MAX_CHARS - 1) + '…' : label;
+
+  // ラベルの長さに応じて幅を可変にする（最小120px）
+  const width = Math.max(120, displayLabel.length * 12 + 40);
   const height = 40;
 
   // 活性・非活性に応じたスタイルの決定
@@ -53,7 +58,7 @@ export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote }
         textAnchor="middle"
         alignmentBaseline="middle"
       >
-        {label}
+        {displayLabel}
       </Text>
       {hasNote && (
         <G x={width / 2 - 10} y={-height / 2 + 10}>

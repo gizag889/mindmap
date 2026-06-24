@@ -15,9 +15,10 @@ interface MindMapProps {
   edges: MindMapEdge[];
   activeNodeId: string | null;
   onNodePress: (id: string) => void;
+  onNodeLongPress?: (id: string) => void;
 }
 
-export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, onNodePress }) => {
+export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, onNodePress, onNodeLongPress }) => {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(width / 2);
@@ -80,7 +81,42 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
       }
     });
 
-  const composed = Gesture.Simultaneous(pinchGesture, panGesture, tapGesture);
+  const longPressGesture = Gesture.LongPress()
+    .runOnJS(true)
+    .onEnd((e) => {
+      if (!onNodeLongPress) return;
+      const tapX = e.x;
+      const tapY = e.y;
+      
+      const canvasX = (tapX - translateX.value) / scale.value;
+      const canvasY = (tapY - translateY.value) / scale.value;
+
+      const hitWidth = 140;
+      const hitHeight = 60;
+
+      let clickedNodeId: string | null = null;
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const nx = node.x || 0;
+        const ny = node.y || 0;
+
+        if (
+          canvasX >= nx - hitWidth / 2 &&
+          canvasX <= nx + hitWidth / 2 &&
+          canvasY >= ny - hitHeight / 2 &&
+          canvasY <= ny + hitHeight / 2
+        ) {
+          clickedNodeId = node.id;
+          break;
+        }
+      }
+
+      if (clickedNodeId !== null) {
+        onNodeLongPress(clickedNodeId);
+      }
+    });
+
+  const composed = Gesture.Simultaneous(pinchGesture, panGesture, tapGesture, longPressGesture);
 
   const animatedProps = useAnimatedProps(() => ({
     transform: [

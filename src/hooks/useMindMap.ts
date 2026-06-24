@@ -333,6 +333,42 @@ export const useMindMap = (
     });
   }, []);
 
+  const handleDeleteNode = useCallback((id: string) => {
+    setData(prevData => {
+      const idsToDelete = new Set<string>();
+      const queue = [id];
+      
+      while (queue.length > 0) {
+        const currentId = queue.shift()!;
+        if (!currentId) continue;
+        idsToDelete.add(currentId);
+        const children = prevData.nodes.filter(n => n.parentId === currentId);
+        children.forEach(c => queue.push(c.id));
+      }
+
+      const newNodes = prevData.nodes.filter(n => !idsToDelete.has(n.id));
+      const newEdges = prevData.edges.filter(
+        e => !idsToDelete.has(e.source) && !idsToDelete.has(e.target)
+      );
+
+      let rootId = null;
+      if (newNodes.length > 0) {
+        rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0].id;
+      }
+      
+      const layoutedNodes = rootId ? calculateLayout(newNodes, newEdges, rootId) : [];
+
+      return {
+        nodes: layoutedNodes,
+        edges: newEdges,
+      };
+    });
+
+    if (activeNodeId === id) {
+      setActiveNodeId(null);
+    }
+  }, [activeNodeId]);
+
   return {
     data,
     isMapVisible,
@@ -343,6 +379,7 @@ export const useMindMap = (
     handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
+    handleDeleteNode,
     handleNodePress,
     setActiveNodeId,
     isGenerating: mutation.isPending,

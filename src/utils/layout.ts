@@ -16,7 +16,14 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
     if (children.length === 0) return;
 
     const angleStep = (endAngle - startAngle) / children.length;
-    const radius = depth * 150; // 150px per depth level
+    
+    // ノードのテキスト長可変化に伴い、ノード同士が重ならないよう最低限必要な弧の長さを確保
+    const minArcLength = 220; 
+    const requiredRadiusForSpacing = children.length > 1 ? minArcLength / angleStep : 0;
+    
+    // 基本の階層間距離も従来の150pxから250pxに広げて、横長のノードの重なりを防ぐ
+    const baseRadius = depth * 200; 
+    const radius = Math.max(baseRadius, requiredRadiusForSpacing);
 
     // マインドマップを**「放射状（サークル状）に自動配置するための再帰処理
     children.forEach((child, index) => {
