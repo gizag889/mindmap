@@ -121,7 +121,9 @@ export const useMindMap = (
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch from dummy API');
+        const errorText = await response.text();
+        console.error('Fetch error details:', errorText);
+        throw new Error(`Failed to fetch from dummy API: ${errorText}`);
       }
 
       return response.json();

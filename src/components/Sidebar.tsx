@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList } from 'react-native';
-import Animated, { SlideInLeft, SlideOutLeft } from 'react-native-reanimated';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, TouchableWithoutFeedback } from 'react-native';
+import Animated, { SlideInLeft, SlideOutLeft, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MindMapPage } from '../types';
 import { AiMode } from '../hooks/useSettings';
 
@@ -27,10 +27,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <Animated.View 
-      style={styles.container}
-      entering={SlideInLeft}
-      exiting={SlideOutLeft}
+      style={styles.overlay}
+      entering={FadeIn.duration(200)}
+      exiting={FadeOut.duration(200)}
     >
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.backdrop} />
+      </TouchableWithoutFeedback>
+
+      <Animated.View 
+        style={styles.container}
+        entering={SlideInLeft.duration(250)}
+        exiting={SlideOutLeft.duration(200)}
+      >
       <View style={styles.header}>
         <Text style={styles.title}>ページ一覧</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -84,24 +93,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Text style={[styles.modeButtonText, aiMode === 'flash' && styles.activeModeText]}>
             ⚡ 高速 / アイデア量産
           </Text>
-          <Text style={styles.modeSubText}>gemini-3.5-flash</Text>
+          <Text style={styles.modeSubText}>ブレインストーミングを加速</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.modeButton, aiMode === 'pro' && styles.activeModeButton]}
           onPress={() => onModeChange('pro')}
         >
-          <Text style={[styles.modeButtonText, aiMode === 'pro' && styles.activeModeText]}>
-            🧠 深掘り / 構造化アシスト
-          </Text>
-          <Text style={styles.modeSubText}>gemini-3.1-pro-preview</Text>
+          <View style={styles.titleContainer}>
+            <Text style={[styles.modeButtonText, aiMode === 'pro' && styles.activeModeText]}>
+              🧠 深掘り / 構造化アシスト
+            </Text>
+            <View style={styles.betaBadge}>
+              <Text style={styles.betaText}>Beta</Text>
+            </View>
+          </View>
+          <Text style={styles.modeSubText}>ノートでAIとの壁打ちにおすすめ</Text>
         </TouchableOpacity>
       </View>
+    </Animated.View>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
   container: {
     position: 'absolute',
     top: 0,
@@ -111,7 +142,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e293b',
     borderRightWidth: 1,
     borderRightColor: '#334155',
-    zIndex: 100,
     paddingTop: 40, // For status bar area
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
@@ -214,11 +244,29 @@ const styles = StyleSheet.create({
     borderColor: '#60a5fa',
     backgroundColor: '#1e293b',
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   modeButtonText: {
     color: '#cbd5e1',
     fontWeight: 'bold',
     fontSize: 14,
-    marginBottom: 4,
+  },
+  betaBadge: {
+    backgroundColor: '#3b82f620',
+    borderColor: '#3b82f680',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    marginLeft: 6,
+  },
+  betaText: {
+    color: '#60a5fa',
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   activeModeText: {
     color: '#60a5fa',
