@@ -10,6 +10,7 @@ import { Sidebar } from './src/components/Sidebar';
 import { useMindMap } from './src/hooks/useMindMap';
 import { useMindMapPages } from './src/hooks/useMindMapPages';
 import { useSettings } from './src/hooks/useSettings';
+import { ConfirmModal } from './src/components/ConfirmModal';
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,9 @@ function MainApp() {
     handleUpdateNodeNote,
     handleNodePress,
     handleDeleteNode,
+    confirmDeleteNode,
+    cancelDeleteNode,
+    nodeIdToDelete,
     setActiveNodeId,
     isNoteChatLoading,
   } = useMindMap(activePageId, updatePage, settings.aiMode);
@@ -110,6 +114,16 @@ function MainApp() {
           onClose={() => setIsNoteModalVisible(false)}
           onSendChat={handleSendNoteChat}
           isChatLoading={isNoteChatLoading}
+        />
+      )}
+      {isMapVisible && activePageId && (
+        <ConfirmModal
+          visible={nodeIdToDelete !== null}
+          title="ノードの削除"
+          message="本当に削除しますか？"
+          warningMessage="※削除されるノード以下の子ノードすべて削除されます。"
+          onConfirm={confirmDeleteNode}
+          onCancel={cancelDeleteNode}
         />
       )}
       {isSidebarVisible && (

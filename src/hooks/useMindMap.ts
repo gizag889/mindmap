@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { MindMapData, MindMapNode, MindMapPage } from '../types';
 import { calculateLayout } from '../utils/layout';
+import { deleteNodeAndChildren } from '../utils/nodeOperations';
 
 // 動的にホストIPを取得してWorkerのURLを設定
 const getWorkerUrl = () => {
@@ -57,6 +58,7 @@ export const useMindMap = (
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
+  const [nodeIdToDelete, setNodeIdToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!pageId) {
@@ -334,40 +336,22 @@ export const useMindMap = (
   }, []);
 
   const handleDeleteNode = useCallback((id: string) => {
-    setData(prevData => {
-      const idsToDelete = new Set<string>();
-      const queue = [id];
-      
-      while (queue.length > 0) {
-        const currentId = queue.shift()!;
-        if (!currentId) continue;
-        idsToDelete.add(currentId);
-        const children = prevData.nodes.filter(n => n.parentId === currentId);
-        children.forEach(c => queue.push(c.id));
+    setNodeIdToDelete(id);
+  }, []);
+
+  const confirmDeleteNode = useCallback(() => {
+    if (nodeIdToDelete) {
+      setData(prevData => deleteNodeAndChildren(prevData, nodeIdToDelete));
+      if (activeNodeId === nodeIdToDelete) {
+        setActiveNodeId(null);
       }
-
-      const newNodes = prevData.nodes.filter(n => !idsToDelete.has(n.id));
-      const newEdges = prevData.edges.filter(
-        e => !idsToDelete.has(e.source) && !idsToDelete.has(e.target)
-      );
-
-      let rootId = null;
-      if (newNodes.length > 0) {
-        rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0].id;
-      }
-      
-      const layoutedNodes = rootId ? calculateLayout(newNodes, newEdges, rootId) : [];
-
-      return {
-        nodes: layoutedNodes,
-        edges: newEdges,
-      };
-    });
-
-    if (activeNodeId === id) {
-      setActiveNodeId(null);
+      setNodeIdToDelete(null);
     }
-  }, [activeNodeId]);
+  }, [nodeIdToDelete, activeNodeId]);
+
+  const cancelDeleteNode = useCallback(() => {
+    setNodeIdToDelete(null);
+  }, []);
 
   return {
     data,
@@ -380,6 +364,9 @@ export const useMindMap = (
     handleAddManualNode,
     handleUpdateNodeNote,
     handleDeleteNode,
+    confirmDeleteNode,
+    cancelDeleteNode,
+    nodeIdToDelete,
     handleNodePress,
     setActiveNodeId,
     isGenerating: mutation.isPending,
