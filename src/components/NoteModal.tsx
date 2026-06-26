@@ -220,9 +220,6 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
                   <View style={styles.footer}>
                     {isEditing ? (
                       <>
-                        <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
-                          <Text style={styles.attachButtonText}>📷 画像を追加</Text>
-                        </TouchableOpacity>
                         <View style={{ flex: 1 }} />
                         <TouchableOpacity 
                           style={styles.cancelButton} 
@@ -237,6 +234,9 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
                           }}
                         >
                           <Text style={styles.cancelButtonText}>キャンセル</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
+                          <Text style={styles.attachButtonText}>🖼️</Text>
                         </TouchableOpacity>
                         {(noteText.trim() || images.length > 0) && (
                           <TouchableOpacity 
@@ -253,7 +253,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
                     ) : (
                       <>
                         <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
-                          <Text style={styles.editButtonText}>戻る</Text>
+                          <Text style={styles.editButtonText}>もどる</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                           <Text style={styles.saveButtonText}>閉じる</Text>
@@ -505,15 +505,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   attachButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    width: 36,
+    height: 36,
     borderRadius: 8,
     backgroundColor: '#334155',
-    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   attachButtonText: {
-    color: '#f8fafc',
-    fontWeight: 'bold',
+    fontSize: 16,
   },
   tabContainer: {
     flexDirection: 'row',
