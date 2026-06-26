@@ -1,34 +1,104 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, SafeAreaView, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, SafeAreaView, TouchableWithoutFeedback, Keyboard, ScrollView, Linking, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { MindMapNode } from '../types';
 
 interface NoteModalProps {
   visible: boolean;
   node: MindMapNode | null;
   activeNodePath?: MindMapNode[];
-  onSave: (nodeId: string, note: string) => void;
+  onSave: (nodeId: string, note: string, images?: string[]) => void;
   onClose: () => void;
   onSendChat?: (message: string, nodeId: string) => void;
   isChatLoading?: boolean;
 }
 
+const renderTextWithLinks = (text: string, onNonLinkPress?: () => void) => {
+  if (!text) return null;
+
+  const urlRegex = /(https?:\/\/[^\s]+)/gi;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <Text
+          key={index}
+          style={styles.linkText}
+          onPress={async () => {
+            try {
+              const supported = await Linking.canOpenURL(part);
+              if (supported) {
+                await Linking.openURL(part);
+              }
+            } catch (error) {
+              console.error("Failed to open URL:", error);
+            }
+          }}
+        >
+          {part}
+        </Text>
+      );
+    }
+    return (
+      <Text key={index} onPress={onNonLinkPress}>
+        {part}
+      </Text>
+    );
+  });
+};
+
 export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodePath = [], onSave, onClose, onSendChat, isChatLoading }) => {
   const [noteText, setNoteText] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'note' | 'chat'>('note');
   const [chatMessage, setChatMessage] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   useEffect(() => {
     if (visible && node) {
       setNoteText(node.note || '');
+      setImages(node.images || []);
+      setIsEditing(!node.note && (!node.images || node.images.length === 0));
     }
   }, [visible, node]);
 
   const handleSave = () => {
     if (node) {
-      onSave(node.id, noteText);
+      onSave(node.id, noteText, images);
     }
     onClose();
+  };
+
+  const pickImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const sourceUri = result.assets[0].uri;
+        const fileName = sourceUri.split('/').pop() || `image_${Date.now()}.jpg`;
+        const destUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.copyAsync({
+          from: sourceUri,
+          to: destUri
+        });
+        
+        setImages(prev => [...prev, destUri]);
+      }
+    } catch (e) {
+      console.error("Failed to pick/save image:", e);
+    }
+  };
+
+  const removeImage = (indexToRemove: number) => {
+    setImages(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
   if (!node) return null;
@@ -46,7 +116,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
         </TouchableWithoutFeedback>
         <KeyboardAvoidingView 
           style={styles.keyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <View style={[styles.modalContainer, { zIndex: 1 }]}>
               <View style={styles.header}>
@@ -102,26 +172,94 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
               {activeTab === 'note' ? (
                 <>
                   <ScrollView style={styles.noteScrollContainer} keyboardShouldPersistTaps="handled">
-                    <TextInput
-                      style={styles.textInput}
-                      value={noteText}
-                      onChangeText={setNoteText}
-                      placeholder="ここにノートを入力してください..."
-                      placeholderTextColor="#94a3b8"
-                      multiline
-                      autoFocus
-                      textAlignVertical="top"
-                      scrollEnabled={false}
-                    />
+                    {isEditing ? (
+                      <TextInput
+                        style={styles.textInput}
+                        value={noteText}
+                        onChangeText={setNoteText}
+                        placeholder="ここにノートを入力してください..."
+                        placeholderTextColor="#94a3b8"
+                        multiline
+                        autoFocus
+                        textAlignVertical="top"
+                        scrollEnabled={false}
+                      />
+                    ) : (
+                      <TouchableOpacity 
+                        style={styles.previewContainer} 
+                        activeOpacity={0.9} 
+                        onPress={() => setIsEditing(true)}
+                      >
+                        {noteText ? (
+                          <Text style={styles.previewText}>
+                            {renderTextWithLinks(noteText, () => setIsEditing(true))}
+                          </Text>
+                        ) : (
+                          <Text style={styles.placeholderText}>
+                            タップしてノートを入力...
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {images.length > 0 && (
+                      <View style={styles.galleryContainer}>
+                        {images.map((uri, idx) => (
+                          <View key={idx} style={styles.imageWrapper}>
+                            <Image source={{ uri }} style={styles.attachedImage} resizeMode="cover" />
+                            {isEditing && (
+                              <TouchableOpacity style={styles.deleteImageBtn} onPress={() => removeImage(idx)}>
+                                <Text style={styles.deleteImageText}>✕</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </ScrollView>
 
                   <View style={styles.footer}>
-                    <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                      <Text style={styles.cancelButtonText}>キャンセル</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                      <Text style={styles.saveButtonText}>保存</Text>
-                    </TouchableOpacity>
+                    {isEditing ? (
+                      <>
+                        <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
+                          <Text style={styles.attachButtonText}>📷 画像を追加</Text>
+                        </TouchableOpacity>
+                        <View style={{ flex: 1 }} />
+                        <TouchableOpacity 
+                          style={styles.cancelButton} 
+                          onPress={() => {
+                            if (node.note || (node.images && node.images.length > 0)) {
+                              setNoteText(node.note || '');
+                              setImages(node.images || []);
+                              setIsEditing(false);
+                            } else {
+                              onClose();
+                            }
+                          }}
+                        >
+                          <Text style={styles.cancelButtonText}>キャンセル</Text>
+                        </TouchableOpacity>
+                        {(noteText.trim() || images.length > 0) && (
+                          <TouchableOpacity 
+                            style={styles.previewButton} 
+                            onPress={() => setIsEditing(false)}
+                          >
+                            <Text style={styles.previewButtonText}>プレビュー</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                          <Text style={styles.saveButtonText}>保存</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
+                          <Text style={styles.editButtonText}>戻る</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                          <Text style={styles.saveButtonText}>閉じる</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
                 </>
               ) : (
@@ -134,7 +272,9 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
                   >
                     {node.chatHistory?.map((msg, index) => (
                       <View key={index} style={[styles.chatBubble, msg.role === 'ai' ? styles.chatBubbleAi : styles.chatBubbleUser]}>
-                        <Text style={styles.chatBubbleText}>{msg.text}</Text>
+                        <Text style={styles.chatBubbleText}>
+                          {renderTextWithLinks(msg.text)}
+                        </Text>
                       </View>
                     ))}
                     {isChatLoading && (
@@ -263,6 +403,45 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     minHeight: 200,
   },
+  previewContainer: {
+    padding: 16,
+    minHeight: 200,
+  },
+  previewText: {
+    color: '#f8fafc',
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  placeholderText: {
+    color: '#94a3b8',
+    fontSize: 16,
+    lineHeight: 24,
+    fontStyle: 'italic',
+  },
+  linkText: {
+    color: '#60a5fa',
+    textDecorationLine: 'underline',
+  },
+  editButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#334155',
+  },
+  editButtonText: {
+    color: '#f8fafc',
+    fontWeight: 'bold',
+  },
+  previewButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#475569',
+  },
+  previewButtonText: {
+    color: '#f8fafc',
+    fontWeight: 'bold',
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -289,6 +468,51 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  galleryContainer: {
+    padding: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  imageWrapper: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#334155',
+  },
+  attachedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  deleteImageBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteImageText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  attachButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#334155',
+    marginRight: 8,
+  },
+  attachButtonText: {
+    color: '#f8fafc',
     fontWeight: 'bold',
   },
   tabContainer: {

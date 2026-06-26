@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform, Alert } from 'react-native';
 import Constants from 'expo-constants';
-import { MindMapData, MindMapNode, MindMapPage } from '../types';
+import { MindMapData, MindMapNode, MindMapPage, MindMapEdge } from '../types';
 import { calculateLayout } from '../utils/layout';
 import { deleteNodeAndChildren } from '../utils/nodeOperations';
 
@@ -359,10 +359,10 @@ export const useMindMap = (
     return path;
   }, [activeNodeId, data.nodes]);
 
-  const handleUpdateNodeNote = useCallback((id: string, note: string) => {
+  const handleUpdateNodeNote = useCallback((id: string, note: string, images?: string[]) => {
     setData(prevData => {
       const newNodes = prevData.nodes.map(node =>
-        node.id === id ? { ...node, note } : node
+        node.id === id ? { ...node, note, ...(images && { images }) } : node
       );
       return {
         ...prevData,

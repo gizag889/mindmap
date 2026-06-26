@@ -15,6 +15,7 @@ export interface MindMapNode {
   promptText?: string;
   isCollapsed?: boolean;
   isHidden?: boolean;
+  images?: string[];
 }
 
 export interface MindMapEdge {

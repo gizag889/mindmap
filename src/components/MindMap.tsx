@@ -187,7 +187,7 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
                   x={node.x || 0}
                   y={node.y || 0}
                   isActive={isNodeActive(node.id)}
-                  hasNote={!!node.note && node.note.trim().length > 0}
+                  hasNote={(!!node.note && node.note.trim().length > 0) || (!!node.images && node.images.length > 0)}
                   type={node.type}
                   isCollapsed={node.isCollapsed}
                 />
