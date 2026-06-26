@@ -11,6 +11,10 @@ export interface MindMapNode {
   y?: number;
   note?: string;
   chatHistory?: ChatMessage[];
+  type?: 'default' | 'ai_pivot';
+  promptText?: string;
+  isCollapsed?: boolean;
+  isHidden?: boolean;
 }
 
 export interface MindMapEdge {

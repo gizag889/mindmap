@@ -11,6 +11,7 @@ import { useMindMap } from './src/hooks/useMindMap';
 import { useMindMapPages } from './src/hooks/useMindMapPages';
 import { useSettings } from './src/hooks/useSettings';
 import { ConfirmModal } from './src/components/ConfirmModal';
+import { PivotModal } from './src/components/PivotModal';
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ export default function App() {
 function MainApp() {
   const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [pivotModalNodeId, setPivotModalNodeId] = useState<string | null>(null);
 
   const {
     pages,
@@ -48,6 +50,7 @@ function MainApp() {
     handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
+    handleToggleCollapse,
     handleNodePress,
     handleDeleteNode,
     confirmDeleteNode,
@@ -75,7 +78,14 @@ function MainApp() {
               nodes={data.nodes}
               edges={data.edges}
               activeNodeId={activeNodeId}
-              onNodePress={handleNodePress}
+              onNodePress={(id) => {
+                const node = data.nodes.find(n => n.id === id);
+                if (node?.type === 'ai_pivot') {
+                  setPivotModalNodeId(id);
+                } else {
+                  handleNodePress(id);
+                }
+              }}
               onNodeLongPress={handleDeleteNode}
             />
           </Animated.View>
@@ -124,6 +134,14 @@ function MainApp() {
           warningMessage="※削除されるノード以下の子ノードすべて削除されます。"
           onConfirm={confirmDeleteNode}
           onCancel={cancelDeleteNode}
+        />
+      )}
+      {isMapVisible && activePageId && (
+        <PivotModal
+          visible={pivotModalNodeId !== null}
+          node={data.nodes.find(n => n.id === pivotModalNodeId) || null}
+          onToggleCollapse={handleToggleCollapse}
+          onClose={() => setPivotModalNodeId(null)}
         />
       )}
       {isSidebarVisible && (

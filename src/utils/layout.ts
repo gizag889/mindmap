@@ -7,11 +7,20 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
   const rootIndex = layoutedNodes.findIndex(n => n.id === rootId);
   if (rootIndex === -1) return layoutedNodes;
 
-  layoutedNodes[rootIndex] = { ...layoutedNodes[rootIndex], x: 0, y: 0 };
+  // 初期状態として全ノードを非表示にし、走査されたものだけを表示する
+  layoutedNodes.forEach((node, idx) => {
+    layoutedNodes[idx] = { ...node, isHidden: true };
+  });
+
+  layoutedNodes[rootIndex] = { ...layoutedNodes[rootIndex], x: 0, y: 0, isHidden: false };
 
   const getChildren = (parentId: string) => layoutedNodes.filter(n => n.parentId === parentId);
   
   const assignPositions = (nodeId: string, depth: number, startAngle: number, endAngle: number) => {
+    const node = layoutedNodes.find(n => n.id === nodeId);
+    // ノードが折りたたまれている場合は子ノードの配置処理を行わない（非表示のままになる）
+    if (!node || node.isCollapsed) return;
+
     const children = getChildren(nodeId);
     if (children.length === 0) return;
 
@@ -36,6 +45,7 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
         ...layoutedNodes[childIndex],
         x: radius * Math.cos(childAngle),
         y: radius * Math.sin(childAngle),
+        isHidden: false,
       };
 
       //子ノードから、さらにその先の子ノード（孫ノードなど）へ処理が進むとき、ここで角度の範囲が細かく分割されて引き渡されます。

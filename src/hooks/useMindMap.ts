@@ -131,13 +131,49 @@ export const useMindMap = (
       return response.json();
     },
     onSuccess: (result, variables) => {
-      const { parentId } = variables;
+      const { parentId, message } = variables;
 
       // Update state with new nodes and edges
       setData(prevData => {
-        // 既存の nodes/edges と、Worker から受信した mindMapUpdates.nodes/edges をスプレッド構文で結合
-        const newNodes = [...prevData.nodes, ...result.mindMapUpdates.nodes];
-        const newEdges = [...prevData.edges, ...result.mindMapUpdates.edges];
+        let injectedNodes = [...result.mindMapUpdates.nodes];
+        let injectedEdges = [...result.mindMapUpdates.edges];
+        
+        if (parentId) {
+          const pivotId = `pivot-${Date.now()}`;
+          const pivotNode: MindMapNode = {
+            id: pivotId,
+            label: "✨",
+            parentId: parentId,
+            type: 'ai_pivot',
+            promptText: message,
+            isCollapsed: false,
+          };
+          
+          const pivotEdge: MindMapEdge = {
+            source: parentId,
+            target: pivotId,
+          };
+          
+          injectedNodes = injectedNodes.map(n => {
+            if (n.parentId === parentId) {
+              return { ...n, parentId: pivotId };
+            }
+            return n;
+          });
+          
+          injectedEdges = injectedEdges.map(e => {
+            if (e.source === parentId && injectedNodes.some(n => n.id === e.target && n.parentId === pivotId)) {
+               return { ...e, source: pivotId };
+            }
+            return e;
+          });
+          
+          injectedNodes.push(pivotNode);
+          injectedEdges.push(pivotEdge);
+        }
+
+        const newNodes = [...prevData.nodes, ...injectedNodes];
+        const newEdges = [...prevData.edges, ...injectedEdges];
         
         // ルートノードの特定: 初回であれば新規生成されたノードの最初の要素、2回目以降であれば既存の最初のノードをルートノードとして特定します。
         const rootId = !parentId ? result.mindMapUpdates.nodes[0].id : prevData.nodes[0]?.id;
@@ -335,6 +371,20 @@ export const useMindMap = (
     });
   }, []);
 
+  const handleToggleCollapse = useCallback((id: string, isCollapsed: boolean) => {
+    setData(prevData => {
+      const newNodes = prevData.nodes.map(n => 
+        n.id === id ? { ...n, isCollapsed } : n
+      );
+      const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
+      const layoutedNodes = rootId ? calculateLayout(newNodes, prevData.edges, rootId) : newNodes;
+      return {
+        ...prevData,
+        nodes: layoutedNodes,
+      };
+    });
+  }, []);
+
   const handleDeleteNode = useCallback((id: string) => {
     setNodeIdToDelete(id);
   }, []);
@@ -363,6 +413,7 @@ export const useMindMap = (
     handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
+    handleToggleCollapse,
     handleDeleteNode,
     confirmDeleteNode,
     cancelDeleteNode,

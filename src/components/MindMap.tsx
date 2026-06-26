@@ -163,7 +163,7 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
             {edges.map((edge, index) => {
               const sourceNode = nodes.find(n => n.id === edge.source);
               const targetNode = nodes.find(n => n.id === edge.target);
-              if (!sourceNode || !targetNode) return null;
+              if (!sourceNode || !targetNode || sourceNode.isHidden || targetNode.isHidden) return null;
               
               const active = isNodeActive(sourceNode.id) && isNodeActive(targetNode.id);
               return (
@@ -177,17 +177,22 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
                 />
               );
             })}
-            {nodes.map((node) => (
-              <Node
-                key={node.id}
-                id={node.id}
-                label={node.label}
-                x={node.x || 0}
-                y={node.y || 0}
-                isActive={isNodeActive(node.id)}
-                hasNote={!!node.note && node.note.trim().length > 0}
-              />
-            ))}
+            {nodes.map((node) => {
+              if (node.isHidden) return null;
+              return (
+                <Node
+                  key={node.id}
+                  id={node.id}
+                  label={node.label}
+                  x={node.x || 0}
+                  y={node.y || 0}
+                  isActive={isNodeActive(node.id)}
+                  hasNote={!!node.note && node.note.trim().length > 0}
+                  type={node.type}
+                  isCollapsed={node.isCollapsed}
+                />
+              );
+            })}
           </AnimatedG>
         </Svg>
       </View>

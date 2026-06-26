@@ -11,9 +11,11 @@ interface NodeProps {
   y: number;
   isActive: boolean;
   hasNote?: boolean;
+  type?: 'default' | 'ai_pivot';
+  isCollapsed?: boolean;
 }
 
-export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote }) => {
+export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote, type, isCollapsed }) => {
   const animatedProps = useAnimatedProps(() => {
     return {
       x: withSpring(x),
@@ -21,6 +23,30 @@ export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote }
       scale: withSpring(isActive ? 1.1 : 0.95),
     };
   }, [x, y, isActive]);
+
+  if (type === 'ai_pivot') {
+    return (
+      <AnimatedG animatedProps={animatedProps} pointerEvents="none">
+        <Circle
+          cx={0}
+          cy={0}
+          r={16}
+          fill={isActive ? "#7e22ce" : "#581c87"}
+          stroke={isActive ? "#d8b4fe" : "#a855f7"}
+          strokeWidth={isActive ? 3 : 1}
+        />
+        <Text
+          fill="#ffffff"
+          fontSize="14"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+          dy={isCollapsed ? -1 : 1}
+        >
+          {isCollapsed ? "📦" : "✨"}
+        </Text>
+      </AnimatedG>
+    );
+  }
 
   // 長すぎるラベルを省略（最大20文字）
   const MAX_CHARS = 20;
