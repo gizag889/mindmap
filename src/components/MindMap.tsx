@@ -148,10 +148,20 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
     if (id === activeNodeId) return true;
     const activeNode = nodes.find(n => n.id === activeNodeId);
     if (!activeNode) return false;
-    // Highlight parent and direct children
+    
+    // Highlight parent
     if (activeNode.parentId === id) return true;
+    
     const childNode = nodes.find(n => n.id === id);
-    if (childNode && childNode.parentId === activeNodeId) return true;
+    
+    // Highlight all descendants (children, grandchildren, etc.)
+    let currentId = childNode?.parentId;
+    while (currentId) {
+      if (currentId === activeNodeId) return true;
+      const parentNode = nodes.find(n => n.id === currentId);
+      currentId = parentNode?.parentId;
+    }
+    
     return false;
   };
 

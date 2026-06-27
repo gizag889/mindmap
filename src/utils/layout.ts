@@ -16,7 +16,7 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
 
   const getChildren = (parentId: string) => layoutedNodes.filter(n => n.parentId === parentId);
   
-  const assignPositions = (nodeId: string, depth: number, startAngle: number, endAngle: number) => {
+  const assignPositions = (nodeId: string, currentRadius: number, startAngle: number, endAngle: number) => {
     const node = layoutedNodes.find(n => n.id === nodeId);
     // ノードが折りたたまれている場合は子ノードの配置処理を行わない（非表示のままになる）
     if (!node || node.isCollapsed) return;
@@ -32,11 +32,13 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
     const minArcLength = Math.max(50, maxLabelLength * 20 + 80); 
     const requiredRadiusForSpacing = children.length > 1 ? minArcLength / angleStep : 0;
     
-    // 基本の階層間距離も従来の150pxから250pxに広げて、横長のノードの重なりを防ぐ
-    const baseRadius = depth * 100; 
+    // 基本の階層間距離（ピボットからの派生ノードの場合は距離を短くする）
+    const isPivot = node.type === 'ai_pivot';
+    const radiusIncrement = isPivot ? 10 : 100;
+    const baseRadius = currentRadius + radiusIncrement; 
     const radius = Math.max(baseRadius, requiredRadiusForSpacing);
 
-    // マインドマップを**「放射状（サークル状）に自動配置するための再帰処理
+    // マインドマップを放射状（サークル状）に自動配置するための再帰処理
     children.forEach((child, index) => {
       const childAngle = startAngle + angleStep * index + angleStep / 2;
       const childIndex = layoutedNodes.findIndex(n => n.id === child.id);
@@ -48,13 +50,13 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
         isHidden: false,
       };
 
-      //子ノードから、さらにその先の子ノード（孫ノードなど）へ処理が進むとき、ここで角度の範囲が細かく分割されて引き渡されます。
-      assignPositions(child.id, depth + 1, startAngle + angleStep * index, startAngle + angleStep * (index + 1));
+      // 子ノードへ処理を進める
+      assignPositions(child.id, radius, startAngle + angleStep * index, startAngle + angleStep * (index + 1));
     });
   };
 
   // ルートノードを起点に、0 から 2π（360度）の範囲で配置を開始する
-  assignPositions(rootId, 1, 0, Math.PI * 2);
+  assignPositions(rootId, 0, 0, Math.PI * 2);
 
   // If there are nodes without parent (disconnected or multiple roots), we just place them randomly or skip.
   return layoutedNodes;
