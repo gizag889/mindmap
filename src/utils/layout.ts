@@ -29,7 +29,7 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
     // ノードのテキスト長可変化に伴い、ノード同士が重ならないよう最低限必要な弧の長さを確保
     // 子ノードの中で最大のテキスト長を取得して必要な弧の長さを動的に計算
     const maxLabelLength = children.reduce((max, child) => Math.max(max, (child.label || "").length), 0);
-    const minArcLength = Math.max(50, maxLabelLength * 20 + 80); 
+    const minArcLength = Math.max(30, maxLabelLength * 20 + 40); 
     const requiredRadiusForSpacing = children.length > 1 ? minArcLength / angleStep : 0;
     
     // 基本の階層間距離（ピボットからの派生ノードの場合は距離を短くする）

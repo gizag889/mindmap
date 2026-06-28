@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, SafeAreaView, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MindMap } from './src/components/MindMap';
 import { ChatSheet } from './src/components/ChatSheet';
 import { NoteModal } from './src/components/NoteModal';
@@ -13,14 +12,8 @@ import { useSettings } from './src/hooks/useSettings';
 import { ConfirmModal } from './src/components/ConfirmModal';
 import { PivotModal } from './src/components/PivotModal';
 
-const queryClient = new QueryClient();
-
 export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <MainApp />
-    </QueryClientProvider>
-  );
+  return <MainApp />;
 }
 
 function MainApp() {

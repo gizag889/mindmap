@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules, Platform, Alert } from 'react-native';
 import Constants from 'expo-constants';
@@ -58,6 +57,8 @@ export const useMindMap = (
   const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<Error | null>(null);
   const [nodeIdToDelete, setNodeIdToDelete] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,8 +114,28 @@ export const useMindMap = (
     saveData();
   }, [data, isLoaded, pageId]);
 
-  const mutation = useMutation({
-    mutationFn: async ({ message, parentId, parentContext, model }: SendMessageParams) => {
+  const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
+    setIsGenerating(true);
+    setGenerationError(null);
+    try {
+      const model = aiMode === 'pro' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
+      let parentContext = '';
+      if (parentId) {
+        const contextNodes = [];
+        let currentId: string | null | undefined = parentId;
+        while (currentId) {
+          const node = data.nodes.find(n => n.id === currentId);
+          if (node) {
+            contextNodes.unshift(node.label);
+            //インドマップのツリー構造を**「子ノードから親ノードへと上に向かって遡る（トラバースする）」**ためのポインタの更新処理
+            currentId = node.parentId;
+          } else {
+            break;
+          }
+        }
+        parentContext = contextNodes.join(" > ");
+      }
+
       const url = getWorkerUrl();
       const response = await fetch(url, {
         method: 'POST',
@@ -128,10 +149,7 @@ export const useMindMap = (
         throw new Error(`Failed to fetch from dummy API: ${errorText}`);
       }
 
-      return response.json();
-    },
-    onSuccess: (result, variables) => {
-      const { parentId, message } = variables;
+      const result = await response.json();
 
       // Update state with new nodes and edges
       setData(prevData => {
@@ -197,37 +215,14 @@ export const useMindMap = (
       } else {
         setActiveNodeId(result.mindMapUpdates.nodes[0].id);
       }
-    },
-    onError: (error) => {
-      console.error('Error fetching dummy API:', error);
-    }
-  });
-
-  const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
-    try {
-      const model = aiMode === 'pro' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
-      let parentContext = '';
-      if (parentId) {
-        const contextNodes = [];
-        let currentId: string | null | undefined = parentId;
-        while (currentId) {
-          const node = data.nodes.find(n => n.id === currentId);
-          if (node) {
-            contextNodes.unshift(node.label);
-            //インドマップのツリー構造を**「子ノードから親ノードへと上に向かって遡る（トラバースする）」**ためのポインタの更新処理
-            currentId = node.parentId;
-          } else {
-            break;
-          }
-        }
-        parentContext = contextNodes.join(" > ");
-      }
-      await mutation.mutateAsync({ message, parentId, parentContext, model });
     } catch (error) {
-      // Error is already logged in onError, but we throw or swallow here to prevent unhandled promise rejection
-      // The component (ChatSheet) also wraps the call in a try/catch or handles it.
+      console.error('Error fetching dummy API:', error);
+      setGenerationError(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    } finally {
+      setIsGenerating(false);
     }
-  }, [mutation, data.nodes]);
+  }, [aiMode, data.nodes, isMapVisible]);
 
   const handleSendNoteChat = useCallback(async (message: string, nodeId: string) => {
     const node = data.nodes.find(n => n.id === nodeId);
@@ -420,8 +415,8 @@ export const useMindMap = (
     nodeIdToDelete,
     handleNodePress,
     setActiveNodeId,
-    isGenerating: mutation.isPending,
+    isGenerating,
     isNoteChatLoading,
-    generationError: mutation.error,
+    generationError,
   };
 };

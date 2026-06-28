@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, SafeAreaView, TouchableWithoutFeedback, Keyboard, ScrollView, Linking, Image } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, SafeAreaView, TouchableWithoutFeedback, Keyboard, ScrollView, Linking, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { MindMapNode } from '../types';
@@ -278,8 +278,9 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
                       </View>
                     ))}
                     {isChatLoading && (
-                      <View style={[styles.chatBubble, styles.chatBubbleAi]}>
-                        <Text style={styles.chatBubbleText}>...</Text>
+                      <View style={[styles.chatBubble, styles.chatBubbleAi, { flexDirection: 'row', alignItems: 'center' }]}>
+                        <ActivityIndicator size="small" color="#94a3b8" style={{ marginRight: 8 }} />
+                        <Text style={[styles.chatBubbleText, { color: '#94a3b8' }]}>思考中...</Text>
                       </View>
                     )}
                   </ScrollView>

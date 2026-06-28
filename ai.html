@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>AIマインドマップ自動生成アプリ 開発指示書</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #2563eb; padding-bottom: 10px; color: #1e3a8a; }
+    h2 { background-color: #f3f4f6; padding: 10px; border-left: 5px solid #2563eb; margin-top: 30px; }
+    h3 { color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+    ul, ol { margin-bottom: 20px; }
+    code { background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #d97706; }
+    pre { background-color: #1e293b; color: #f8fafc; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .highlight { font-weight: bold; color: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <h1>📱 AIマインドマップ自動生成モバイルアプリ 開発指示書</h1>
+
+  <section>
+    <h2>指定技術スタック</h2>
+    <p>以下の技術構成を前提としてコードを生成してください。</p>
+    <ul>
+      <li><strong>フロントエンド:</strong> React Native (Expo)</li>
+      <li><strong>描画・ジェスチャー:</strong> <code>react-native-svg</code>, <code>react-native-gesture-handler</code></li>
+      <li><strong>アニメーション:</strong> <code>react-native-reanimated</code> (滑らかなトランジション必須)</li>
+      <li><strong>UIコンポーネント:</strong> <code>@gorhom/bottom-sheet</code> (チャットUI用)</li>
+      <li><strong>決済連動 (IAP):</strong> <code>react-native-purchases</code> (RevenueCat SDK)</li>
+      <li><strong>バックエンド・API中継:</strong> Cloudflare Workers (LLM APIへのプロキシおよびWebhookレシーバー)</li>
+      <li><strong>データベース:</strong> Cloudflare D1 (ユーザーのクレジット残高、チャット履歴、マップ構造の保存)</li>
+    </ul>
+  </section>
+
+
+
+  <section>
+    <h2>課金システム・クレジット管理（RevenueCat連携）</h2>
+    <p>LLM APIコストをカバーし、持続可能なビジネスモデルとするため、ユーザーごとに「AIクレジット」を管理するアーキテクチャを実装する。</p>
+
+    <h3>クレジット消費仕様（ビジネスロジック設計）</h3>
+    <ul>
+      <li><strong>初期付与:</strong> 新規ユーザー登録時に <code>70 クレジット</code> を無料付与。</li>
+      <li><strong>通常チャット:</strong> ボトムシートからのメッセージ送信1回につき <code>1 クレジット</code> 消費。</li>
+      <li><strong>新規マップ生成（初回）:</strong> ルートノードおよび初期拡張の生成時に <code>10 クレジット</code> 消費。</li>
+    </ul>
+
+    <h3>バックエンド実装要件 (Cloudflare Workers & D1)</h3>
+    <ol>
+      <li><strong>データベース設計:</strong>
+        <ul>
+          <li><code>users</code> テーブル: ユーザーIDと <code>credits</code> (整数) カラムを持つこと。</li>
+          <li><code>credit_transactions</code> テーブル: 消費および購入付与の履歴（増減量、理由、タイムスタンプ）を保存すること。</li>
+        </ul>
+      </li>
+      <li><strong>APIリクエスト処理 (チャット実行時):</strong>
+        <ul>
+          <li>フロントエンドからチャットリクエストを受けた際、まずD1で該当ユーザーのクレジット残高を確認する。</li>
+          <li>残高不足の場合は <code>402 Payment Required</code> などのエラーを返し、フロントエンドでクレジット購入画面（Paywall）を表示させる。</li>
+          <li>残高がある場合のみ、トランザクション処理でクレジットを減算し、LLM APIを呼び出す。</li>
+        </ul>
+      </li>
+      <li><strong>RevenueCat Webhookレシーバーの実装:</strong>
+        <ul>
+          <li>ユーザーがアプリ内で消耗型アイテム（追加クレジット）を購入した際、RevenueCatから飛んでくる <code>NON_RENEWING_PURCHASE</code> イベントを受け取るエンドポイントを構築する。</li>
+          <li>リクエストの認証（Webhook Secretの検証）を行い、D1のユーザー残高に購入された分のクレジットを加算し、トランザクションログを記録する。</li>
+        </ul>
+      </li>
+    </ol>
+  </section>
+
+  
+
+ 
+  <section>
+    <h2> 実装の優先ステップ（開発への指示）</h2>
+    <p>まずは以下のStep 1から実装を開始し、動作確認ができるコードを出力してください。</p>
+    <ol>
+
+      <li><strong> バックエンド＆クレジット管理基盤</strong><br>
+        Cloudflare WorkersとD1を用いた、ユーザー残高確認・消費処理、およびダミーのJSONレスポンスを返すAPIエンドポイントの構築。</li>
+      <li><strong>決済・Webhook連携</strong><br>
+        <code>react-native-purchases</code> を用いたフロントエンドの購入処理呼び出しと、Workers側でのRevenueCat Webhook（クレジット加算）受け取り処理の実装。</li>
+    </ol>
+  </section>
+
+</body>
+</html>
