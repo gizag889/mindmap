@@ -11,12 +11,16 @@ import { useMindMapPages } from './src/hooks/useMindMapPages';
 import { useSettings } from './src/hooks/useSettings';
 import { ConfirmModal } from './src/components/ConfirmModal';
 import { PivotModal } from './src/components/PivotModal';
+import { PaywallModal } from './src/components/PaywallModal';
+import { useAuth } from './src/hooks/useAuth';
+import { ActivityIndicator } from 'react-native';
 
 export default function App() {
   return <MainApp />;
 }
 
 function MainApp() {
+  const { session, user, isLoading, linkGoogleAccount } = useAuth();
   const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [pivotModalNodeId, setPivotModalNodeId] = useState<string | null>(null);
@@ -51,7 +55,17 @@ function MainApp() {
     nodeIdToDelete,
     setActiveNodeId,
     isNoteChatLoading,
-  } = useMindMap(activePageId, updatePage, settings.aiMode);
+    isPaywallVisible,
+    setIsPaywallVisible,
+  } = useMindMap(activePageId, session?.access_token || null, updatePage, settings.aiMode);
+
+  if (isLoading) {
+    return (
+      <View style={styles.initialScreen}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -155,6 +169,10 @@ function MainApp() {
           onClose={() => setIsSidebarVisible(false)}
         />
       )}
+      <PaywallModal 
+        visible={isPaywallVisible} 
+        onClose={() => setIsPaywallVisible(false)} 
+      />
     </GestureHandlerRootView>
   );
 }

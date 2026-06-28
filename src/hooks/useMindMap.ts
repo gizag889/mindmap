@@ -49,6 +49,7 @@ interface SendMessageParams {
 
 export const useMindMap = (
   pageId: string | null,
+  token: string | null,
   onUpdatePage?: (id: string, updates: Partial<MindMapPage>) => void,
   aiMode: 'flash' | 'pro' = 'flash'
 ) => {
@@ -60,6 +61,7 @@ export const useMindMap = (
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<Error | null>(null);
   const [nodeIdToDelete, setNodeIdToDelete] = useState<string | null>(null);
+  const [isPaywallVisible, setIsPaywallVisible] = useState(false);
 
   useEffect(() => {
     if (!pageId) {
@@ -139,14 +141,21 @@ export const useMindMap = (
       const url = getWorkerUrl();
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ message, parentId, parentContext, model }),
       });
 
       if (!response.ok) {
+        if (response.status === 402) {
+          setIsPaywallVisible(true);
+          throw new Error('Insufficient credits');
+        }
         const errorText = await response.text();
         console.error('Fetch error details:', errorText);
-        throw new Error(`Failed to fetch from dummy API: ${errorText}`);
+        throw new Error(`Failed to fetch from backend API: ${errorText}`);
       }
 
       const result = await response.json();
@@ -222,7 +231,7 @@ export const useMindMap = (
     } finally {
       setIsGenerating(false);
     }
-  }, [aiMode, data.nodes, isMapVisible]);
+  }, [aiMode, data.nodes, isMapVisible, token]);
 
   const handleSendNoteChat = useCallback(async (message: string, nodeId: string) => {
     const node = data.nodes.find(n => n.id === nodeId);
@@ -257,7 +266,10 @@ export const useMindMap = (
       const url = getWorkerUrl();
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           message,
           parentId: nodeId,
@@ -270,6 +282,10 @@ export const useMindMap = (
       });
 
       if (!response.ok) {
+        if (response.status === 402) {
+          setIsPaywallVisible(true);
+          throw new Error('Insufficient credits');
+        }
         throw new Error('Failed to fetch chat response');
       }
 
@@ -295,7 +311,7 @@ export const useMindMap = (
     } finally {
       setIsNoteChatLoading(false);
     }
-  }, [data.nodes]);
+  }, [data.nodes, aiMode, token]);
 
   const handleAddManualNode = useCallback((label: string, parentId: string | null) => {
     if (!label.trim()) return;
@@ -418,5 +434,7 @@ export const useMindMap = (
     isGenerating,
     isNoteChatLoading,
     generationError,
+    isPaywallVisible,
+    setIsPaywallVisible,
   };
 };
