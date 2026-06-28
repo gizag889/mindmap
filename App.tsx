@@ -166,6 +166,10 @@ function MainApp() {
             setIsSidebarVisible(false);
           }}
           onDeletePage={deletePage}
+          onOpenPaywall={() => {
+            setIsPaywallVisible(true);
+            setIsSidebarVisible(false);
+          }}
           onClose={() => setIsSidebarVisible(false)}
         />
       )}

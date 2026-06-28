@@ -12,6 +12,7 @@ interface SidebarProps {
   onSelectPage: (id: string) => void;
   onCreatePage: () => void;
   onDeletePage: (id: string) => void;
+  onOpenPaywall: () => void;
   onClose: () => void;
 }
 
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectPage,
   onCreatePage,
   onDeletePage,
+  onOpenPaywall,
   onClose
 }) => {
   return (
@@ -85,6 +87,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       />
 
       <View style={styles.settingsSection}>
+        <TouchableOpacity style={styles.paywallButton} onPress={onOpenPaywall}>
+          <Text style={styles.paywallButtonText}>👑 プロプラン / クレジット追加</Text>
+        </TouchableOpacity>
+        
         <Text style={styles.sectionTitle}>AIモード設定</Text>
         <TouchableOpacity 
           style={[styles.modeButton, aiMode === 'flash' && styles.activeModeButton]}
@@ -223,6 +229,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#334155',
     backgroundColor: '#0f172a',
+  },
+  paywallButton: {
+    backgroundColor: '#3b82f6',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  paywallButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   sectionTitle: {
     color: '#94a3b8',
