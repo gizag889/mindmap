@@ -143,8 +143,10 @@ export const useMindMap = (
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
+          // API リクエストのヘッダーに、認証用トークン（JWT など）が存在する場合のみ Authorization ヘッダーを動的に追加する
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
+        // 「バックエンド側でマインドマップの接続関係（親子関係）を正しく構築するための情報」
         body: JSON.stringify({ message, parentId, parentContext, model }),
       });
 
@@ -162,6 +164,7 @@ export const useMindMap = (
 
       // Update state with new nodes and edges
       setData(prevData => {
+        // mindMapUpdatesはworker/src/index.ts の 179 行目に定義（プロンプトによる指示）
         let injectedNodes = [...result.mindMapUpdates.nodes];
         let injectedEdges = [...result.mindMapUpdates.edges];
         
@@ -180,14 +183,16 @@ export const useMindMap = (
             source: parentId,
             target: pivotId,
           };
-          
+          // 役割: AIから返ってきた新規ノード群（injectedNodes）のうち、親ノードIDが parentId（既存の親）になっているノードを探し、その親IDを pivotId（ピボットノードのID）に書き換えます。
+          // 結果: AI生成ノード群の親が、既存の親ノードからピボットノード（✨）に切り替わります。
           injectedNodes = injectedNodes.map(n => {
             if (n.parentId === parentId) {
               return { ...n, parentId: pivotId };
             }
             return n;
           });
-          
+          // 役割: AIから返ってきたエッジ（接続線）のうち、「既存の親ノード（parentId）から、さきほど親を pivotId に書き換えた新規ノード」に向かっている接続線を探し、その接続元（source）を pivotId に書き換えます。
+          // 結果: 接続線のスタート地点が既存の親ノードからピボットノード（✨）に切り替わります。
           injectedEdges = injectedEdges.map(e => {
             if (e.source === parentId && injectedNodes.some(n => n.id === e.target && n.parentId === pivotId)) {
                return { ...e, source: pivotId };
@@ -231,6 +236,7 @@ export const useMindMap = (
     } finally {
       setIsGenerating(false);
     }
+    //50~58行目でuseEffectを定義
   }, [aiMode, data.nodes, isMapVisible, token]);
 
   const handleSendNoteChat = useCallback(async (message: string, nodeId: string) => {
