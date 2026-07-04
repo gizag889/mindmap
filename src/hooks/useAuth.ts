@@ -13,12 +13,12 @@ export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Session is retrieved at startup
+    // アプリが立ち上がった瞬間に、端末（AsyncStorage）に保存されている過去のログイン情報（セッション）があるかを非同期で取得
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       setSession(session);
       setUser(session?.user || null);
       
-      // If no session exists, we do anonymous login
+      // 過去のログイン情報がない場合は、自動で匿名ログインを実行
       if (!session && !error) {
         signInAnonymously();
       } else {

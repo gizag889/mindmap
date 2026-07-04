@@ -7,36 +7,7 @@ import { calculateLayout } from '../utils/layout';
 import { deleteNodeAndChildren } from '../utils/nodeOperations';
 
 // 動的にホストIPを取得してWorkerのURLを設定
-const getWorkerUrl = () => {
-  if (__DEV__) {
-    let hostIp: string | null = null;
-
-    // 1. まずバンドルURLから取得を試みる
-    const scriptURL = NativeModules.SourceCode?.scriptURL;
-    if (scriptURL) {
-      const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
-      if (match && match[1]) hostIp = match[1];
-    }
-
-    // 2. 取得できない場合は Expo の設定から取得する
-    if (!hostIp) {
-      const hostUri = Constants.expoConfig?.hostUri;
-      if (hostUri) {
-        hostIp = hostUri.split(':')[0];
-      }
-    }
-
-    if (hostIp) {
-      // Androidエミュレータの場合のlocalhost変換
-      if (Platform.OS === 'android' && (hostIp === 'localhost' || hostIp === '127.0.0.1')) {
-        hostIp = '10.0.2.2';
-      }
-      return `http://${hostIp}:8787`;
-    }
-  }
-  // 全ての取得に失敗した時の最終フォールバック
-  return Platform.OS === 'android' ? 'http://10.0.2.2:8787' : 'http://localhost:8787';
-};
+import { sendMindMapMessage, processMindMapUpdates, getWorkerUrl } from '../utils/mindMapApi';
 
 const MINDMAP_STORAGE_KEY = '@mindmap_data';
 
@@ -75,6 +46,7 @@ export const useMindMap = (
     const loadData = async () => {
       setIsLoaded(false);
       try {
+        //  AsyncStorage からマップデータを取得（ロード）しています
         const jsonValue = await AsyncStorage.getItem(`@mindmap_data_${pageId}`);
         if (jsonValue != null) {
           const parsedData = JSON.parse(jsonValue);
@@ -98,6 +70,8 @@ export const useMindMap = (
     loadData();
   }, [pageId]);
 
+
+  //最新のデータを AsyncStorage に書き込む（保存する）。
   useEffect(() => {
     if (!isLoaded || !pageId) return;
     const saveData = async () => {
@@ -120,104 +94,23 @@ export const useMindMap = (
     setIsGenerating(true);
     setGenerationError(null);
     try {
-      const model = aiMode === 'pro' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
-      let parentContext = '';
-      if (parentId) {
-        const contextNodes = [];
-        let currentId: string | null | undefined = parentId;
-        while (currentId) {
-          const node = data.nodes.find(n => n.id === currentId);
-          if (node) {
-            contextNodes.unshift(node.label);
-            //インドマップのツリー構造を**「子ノードから親ノードへと上に向かって遡る（トラバースする）」**ためのポインタの更新処理
-            currentId = node.parentId;
-          } else {
-            break;
-          }
-        }
-        parentContext = contextNodes.join(" > ");
-      }
-
-      const url = getWorkerUrl();
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          // API リクエストのヘッダーに、認証用トークン（JWT など）が存在する場合のみ Authorization ヘッダーを動的に追加する
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        // 「バックエンド側でマインドマップの接続関係（親子関係）を正しく構築するための情報」
-        body: JSON.stringify({ message, parentId, parentContext, model }),
+      const result = await sendMindMapMessage({
+        message,
+        parentId,
+        aiMode,
+        nodes: data.nodes,
+        token,
+        onPaywall: () => setIsPaywallVisible(true),
       });
 
-      if (!response.ok) {
-        if (response.status === 402) {
-          setIsPaywallVisible(true);
-          throw new Error('Insufficient credits');
-        }
-        const errorText = await response.text();
-        console.error('Fetch error details:', errorText);
-        throw new Error(`Failed to fetch from backend API: ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      // Update state with new nodes and edges
-      setData(prevData => {
-        // mindMapUpdatesはworker/src/index.ts の 179 行目に定義（プロンプトによる指示）
-        let injectedNodes = [...result.mindMapUpdates.nodes];
-        let injectedEdges = [...result.mindMapUpdates.edges];
-        
-        if (parentId) {
-          const pivotId = `pivot-${Date.now()}`;
-          const pivotNode: MindMapNode = {
-            id: pivotId,
-            label: "✨",
-            parentId: parentId,
-            type: 'ai_pivot',
-            promptText: message,
-            isCollapsed: false,
-          };
-          
-          const pivotEdge: MindMapEdge = {
-            source: parentId,
-            target: pivotId,
-          };
-          // 役割: AIから返ってきた新規ノード群（injectedNodes）のうち、親ノードIDが parentId（既存の親）になっているノードを探し、その親IDを pivotId（ピボットノードのID）に書き換えます。
-          // 結果: AI生成ノード群の親が、既存の親ノードからピボットノード（✨）に切り替わります。
-          injectedNodes = injectedNodes.map(n => {
-            if (n.parentId === parentId) {
-              return { ...n, parentId: pivotId };
-            }
-            return n;
-          });
-          // 役割: AIから返ってきたエッジ（接続線）のうち、「既存の親ノード（parentId）から、さきほど親を pivotId に書き換えた新規ノード」に向かっている接続線を探し、その接続元（source）を pivotId に書き換えます。
-          // 結果: 接続線のスタート地点が既存の親ノードからピボットノード（✨）に切り替わります。
-          injectedEdges = injectedEdges.map(e => {
-            if (e.source === parentId && injectedNodes.some(n => n.id === e.target && n.parentId === pivotId)) {
-               return { ...e, source: pivotId };
-            }
-            return e;
-          });
-          
-          injectedNodes.push(pivotNode);
-          injectedEdges.push(pivotEdge);
-        }
-
-        const newNodes = [...prevData.nodes, ...injectedNodes];
-        const newEdges = [...prevData.edges, ...injectedEdges];
-        
-        // ルートノードの特定: 初回であれば新規生成されたノードの最初の要素、2回目以降であれば既存の最初のノードをルートノードとして特定します。
-        const rootId = !parentId ? result.mindMapUpdates.nodes[0].id : prevData.nodes[0]?.id;
-        
-        // 座標の再計算: 結合したノードとエッジ、およびルートノードのIDを calculateLayout 関数に渡し、各ノードの配置用座標 (x, y) を計算・付与します。
-        const layoutedNodes = calculateLayout(newNodes, newEdges, rootId);
-        
-        return {
-          nodes: layoutedNodes,
-          edges: newEdges,
-        };
-      });
+      setData(prevData =>
+        processMindMapUpdates({
+          prevData,
+          resultUpdates: result.mindMapUpdates,
+          parentId,
+          message,
+        })
+      );
 
       if (!isMapVisible) {
         setIsMapVisible(true);
@@ -236,7 +129,6 @@ export const useMindMap = (
     } finally {
       setIsGenerating(false);
     }
-    //50~58行目でuseEffectを定義
   }, [aiMode, data.nodes, isMapVisible, token]);
 
   const handleSendNoteChat = useCallback(async (message: string, nodeId: string) => {
@@ -260,7 +152,11 @@ export const useMindMap = (
 
     // Optimistic Update
     setData(prevData => {
+      //既存のノード一覧から、チャットを送信した対象のノード（nodeId）を特定します
       const newNodes = prevData.nodes.map(n => 
+        //...n 対象：ノード（オブジェクト全体）
+        //配列のコピー 過去のチャット履歴: ...(n.chatHistory || [])
+        // 新しいチャットメッセージ： { role: 'user' as const, text: message } これを上記配列の末尾に追加
         n.id === nodeId ? { ...n, chatHistory: [...(n.chatHistory || []), { role: 'user' as const, text: message }] } : n
       );
       return { ...prevData, nodes: newNodes };
@@ -334,6 +230,7 @@ export const useMindMap = (
       const newNodes = [...prevData.nodes, newNode];
       
       let newEdges = [...prevData.edges];
+
       if (parentId) {
         newEdges.push({ source: parentId, target: newNodeId });
       }
@@ -358,10 +255,12 @@ export const useMindMap = (
 
   const activeNode = data.nodes.find(n => n.id === activeNodeId) || null;
 
+  //選択したノードから親ノード（parentId）を順に辿ってルート（一番上の親）までの経路リスト（パス）を作る処理
   const activeNodePath = useMemo(() => {
     if (!activeNodeId) return [];
     const path: MindMapNode[] = [];
     let currentId: string | null | undefined = activeNodeId;
+    //  Set は、重複しない一意な値を管理するためのオブジェクト
     const visited = new Set<string>();
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
@@ -379,6 +278,15 @@ export const useMindMap = (
   const handleUpdateNodeNote = useCallback((id: string, note: string, images?: string[]) => {
     setData(prevData => {
       const newNodes = prevData.nodes.map(node =>
+        //...node: 元のノードオブジェクトが持っているすべてのプロパティ（id や label、chatHistory など）を新しいオブジェクトに丸ごとコピーします。
+        // note: 新しいノートの内容（note 引数）で、元のノート情報を上書きします。
+
+        //images（画像データの配列）が存在する場合：
+        //images && { images } は、{ images: images } と評価されます。
+        //これをスプレッド構文 ... で展開するため、結果としてオブジェクトの中に images: images が追加（または上書き）されます。
+        //images が存在しない（undefined や null などの）場合：
+        //images && ... が undefined（または false）と評価されます。
+        //スプレッド構文は undefined や false を展開しようとしても何も追加しないため、ノードオブジェクトには影響を与えません（エラーも起きません）。
         node.id === id ? { ...node, note, ...(images && { images }) } : node
       );
       return {
@@ -388,11 +296,14 @@ export const useMindMap = (
     });
   }, []);
 
+  // 「折りたたみ（開閉）状態」を切り替えて、それに応じてマップ全体のレイアウトを再計算
   const handleToggleCollapse = useCallback((id: string, isCollapsed: boolean) => {
     setData(prevData => {
       const newNodes = prevData.nodes.map(n => 
+        //iscollapsedを更新して、ノードが閉じているか開いているかを更新します。
         n.id === id ? { ...n, isCollapsed } : n
       );
+      //レイアウト再構成のためにルートノードを特定、今回は親idを持たないノードを探している。
       const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
       const layoutedNodes = rootId ? calculateLayout(newNodes, prevData.edges, rootId) : newNodes;
       return {

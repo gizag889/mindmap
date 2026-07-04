@@ -5,6 +5,8 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
   const layoutedNodes = [...nodes];
   
   const rootIndex = layoutedNodes.findIndex(n => n.id === rootId);
+
+  
   if (rootIndex === -1) return layoutedNodes;
 
   // 初期状態として全ノードを非表示にし、走査されたものだけを表示する
