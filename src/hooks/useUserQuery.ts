@@ -1,0 +1,33 @@
+import { useQuery } from '@tanstack/react-query';
+import { getWorkerUrl } from '../utils/mindMapApi';
+
+interface UserData {
+  credits: number;
+  is_pro: boolean;
+}
+
+export const useUserQuery = (token: string | null) => {
+  return useQuery<UserData, Error>({
+    queryKey: ['user'],
+    queryFn: async () => {
+      if (!token) throw new Error('No token provided');
+      
+      const url = getWorkerUrl() + '/api/user';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      
+      return res.json();
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+};

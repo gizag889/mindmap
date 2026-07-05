@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { MindMapData } from '../types';
 import { sendMindMapMessage, processMindMapUpdates, getWorkerUrl } from '../utils/mindMapApi';
 
@@ -25,6 +26,7 @@ export const useMindMapAI = ({
   const [generationError, setGenerationError] = useState<Error | null>(null);
   const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
   const [paywallReason, setPaywallReason] = useState<'insufficient_credits' | 'add_credits' | null>(null);
+  const queryClient = useQueryClient();
 
   const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
     setIsGenerating(true);
@@ -58,6 +60,8 @@ export const useMindMapAI = ({
       } else {
         setActiveNodeId(result.mindMapUpdates.nodes[0].id);
       }
+      
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     } catch (error) {
       console.error('Error fetching dummy API:', error);
       setGenerationError(error instanceof Error ? error : new Error(String(error)));
@@ -133,6 +137,8 @@ export const useMindMapAI = ({
         );
         return { ...prevData, nodes: newNodes };
       });
+      
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     } catch (error) {
       console.error('Error fetching note chat:', error);
       // Revert optimistic update

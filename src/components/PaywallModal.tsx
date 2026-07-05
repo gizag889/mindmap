@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator } fr
 import { useBilling } from '../hooks/useBilling';
 import { useAuth } from '../hooks/useAuth';
 import { PurchasesPackage } from 'react-native-purchases';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   visible: boolean;
@@ -13,6 +14,7 @@ interface Props {
 export const PaywallModal = ({ visible, reason = 'insufficient_credits', onClose }: Props) => {
   const { packages, purchasePackage, isReady } = useBilling();
   const { user, session, linkGoogleAccount } = useAuth();
+  const queryClient = useQueryClient();
   
   const isAnonymous = user?.is_anonymous;
 
@@ -39,6 +41,7 @@ export const PaywallModal = ({ visible, reason = 'insufficient_credits', onClose
       } catch (e) {
         console.error('Verify purchase error', e);
       }
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       onClose();
     }
   };

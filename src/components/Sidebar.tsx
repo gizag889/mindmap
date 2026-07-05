@@ -1,13 +1,15 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, TouchableWithoutFeedback } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import Animated, { SlideInLeft, SlideOutLeft, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MindMapPage } from '../types';
 import { AiMode } from '../hooks/useSettings';
+import { useUserQuery } from '../hooks/useUserQuery';
 
 interface SidebarProps {
   pages: MindMapPage[];
   activePageId: string | null;
   aiMode: AiMode;
+  token: string | null;
   onModeChange: (mode: AiMode) => void;
   onSelectPage: (id: string) => void;
   onCreatePage: () => void;
@@ -20,6 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pages,
   activePageId,
   aiMode,
+  token,
   onModeChange,
   onSelectPage,
   onCreatePage,
@@ -27,6 +30,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenPaywall,
   onClose
 }) => {
+  const { data: userData, isLoading: isLoadingCredits } = useUserQuery(token);
+
   return (
     <Animated.View 
       style={styles.overlay}
@@ -87,6 +92,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       />
 
       <View style={styles.settingsSection}>
+        <View style={styles.creditsContainer}>
+          <View style={styles.creditsHeader}>
+            <Text style={styles.sectionTitle}>アカウント残高</Text>
+            {isLoadingCredits && <ActivityIndicator size="small" color="#60a5fa" />}
+          </View>
+          <View style={styles.creditsBox}>
+            <Text style={styles.creditsLabel}>残りクレジット</Text>
+            <Text style={styles.creditsValue}>
+              {userData?.is_pro ? '∞ (Pro)' : userData ? userData.credits : '-'}
+            </Text>
+          </View>
+        </View>
+
         <TouchableOpacity style={styles.paywallButton} onPress={onOpenPaywall}>
           <Text style={styles.paywallButtonText}>👑 プロプラン / クレジット追加</Text>
         </TouchableOpacity>
@@ -230,6 +248,35 @@ const styles = StyleSheet.create({
     borderTopColor: '#334155',
     backgroundColor: '#0f172a',
   },
+  creditsContainer: {
+    marginBottom: 16,
+  },
+  creditsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  creditsBox: {
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  creditsLabel: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  creditsValue: {
+    color: '#3b82f6',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   paywallButton: {
     backgroundColor: '#3b82f6',
     padding: 12,
@@ -246,7 +293,6 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },

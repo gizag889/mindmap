@@ -14,9 +14,16 @@ import { PivotModal } from './src/components/PivotModal';
 import { PaywallModal } from './src/components/PaywallModal';
 import { useAuth } from './src/hooks/useAuth';
 import { ActivityIndicator } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 export default function App() {
-  return <MainApp />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <MainApp />
+    </QueryClientProvider>
+  );
 }
 
 function MainApp() {
@@ -157,6 +164,7 @@ function MainApp() {
           pages={pages}
           activePageId={activePageId}
           aiMode={settings.aiMode}
+          token={session?.access_token || null}
           onModeChange={(mode) => updateSettings({ aiMode: mode })}
           onSelectPage={(id) => {
             setActivePageId(id);
