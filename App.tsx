@@ -56,8 +56,8 @@ function MainApp() {
     nodeIdToDelete,
     setActiveNodeId,
     isNoteChatLoading,
-    isPaywallVisible,
-    setIsPaywallVisible,
+    paywallReason,
+    setPaywallReason,
   } = useMindMap(activePageId, session?.access_token || null, updatePage, settings.aiMode);
 
   if (isLoading) {
@@ -168,15 +168,16 @@ function MainApp() {
           }}
           onDeletePage={deletePage}
           onOpenPaywall={() => {
-            setIsPaywallVisible(true);
+            setPaywallReason('add_credits');
             setIsSidebarVisible(false);
           }}
           onClose={() => setIsSidebarVisible(false)}
         />
       )}
       <PaywallModal 
-        visible={isPaywallVisible} 
-        onClose={() => setIsPaywallVisible(false)} 
+        visible={paywallReason !== null} 
+        reason={paywallReason || 'add_credits'}
+        onClose={() => setPaywallReason(null)} 
       />
     </GestureHandlerRootView>
   );

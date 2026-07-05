@@ -6,10 +6,11 @@ import { PurchasesPackage } from 'react-native-purchases';
 
 interface Props {
   visible: boolean;
+  reason?: 'insufficient_credits' | 'add_credits';
   onClose: () => void;
 }
 
-export const PaywallModal = ({ visible, onClose }: Props) => {
+export const PaywallModal = ({ visible, reason = 'insufficient_credits', onClose }: Props) => {
   const { packages, purchasePackage, isReady } = useBilling();
   const { user, session, linkGoogleAccount } = useAuth();
   
@@ -42,12 +43,17 @@ export const PaywallModal = ({ visible, onClose }: Props) => {
     }
   };
 
+  const title = reason === 'insufficient_credits' ? 'クレジットが不足しています' : 'プラン・クレジットの追加';
+  const subtitle = reason === 'insufficient_credits' 
+    ? 'AI機能を継続して利用するにはクレジットを追加してください。'
+    : 'より多くのAI機能を利用するために、プランをアップグレードするかクレジットを追加してください。';
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <Text style={styles.title}>クレジットが不足しています</Text>
-          <Text style={styles.subtitle}>AI機能を継続して利用するにはクレジットを追加してください。</Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
           
           {isAnonymous && (
             <View style={styles.linkAccountContainer}>

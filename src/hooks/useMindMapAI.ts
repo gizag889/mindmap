@@ -24,7 +24,7 @@ export const useMindMapAI = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<Error | null>(null);
   const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
-  const [isPaywallVisible, setIsPaywallVisible] = useState(false);
+  const [paywallReason, setPaywallReason] = useState<'insufficient_credits' | 'add_credits' | null>(null);
 
   const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
     setIsGenerating(true);
@@ -36,7 +36,7 @@ export const useMindMapAI = ({
         aiMode,
         nodes: data.nodes,
         token,
-        onPaywall: () => setIsPaywallVisible(true),
+        onPaywall: () => setPaywallReason('insufficient_credits'),
       });
 
       setData(prevData =>
@@ -117,7 +117,7 @@ export const useMindMapAI = ({
 
       if (!response.ok) {
         if (response.status === 402) {
-          setIsPaywallVisible(true);
+          setPaywallReason('insufficient_credits');
           throw new Error('Insufficient credits');
         }
         throw new Error('Failed to fetch chat response');
@@ -151,8 +151,8 @@ export const useMindMapAI = ({
     isGenerating,
     generationError,
     isNoteChatLoading,
-    isPaywallVisible,
-    setIsPaywallVisible,
+    paywallReason,
+    setPaywallReason,
     handleSendMessage,
     handleSendNoteChat,
   };

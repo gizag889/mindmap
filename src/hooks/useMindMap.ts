@@ -35,8 +35,8 @@ export const useMindMap = (
     isGenerating,
     generationError,
     isNoteChatLoading,
-    isPaywallVisible,
-    setIsPaywallVisible,
+    paywallReason,
+    setPaywallReason,
     handleSendMessage,
     handleSendNoteChat,
   } = useMindMapAI({
@@ -175,7 +175,7 @@ export const useMindMap = (
     isGenerating,
     isNoteChatLoading,
     generationError,
-    isPaywallVisible,
-    setIsPaywallVisible,
+    paywallReason,
+    setPaywallReason,
   };
 };
