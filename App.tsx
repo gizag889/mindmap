@@ -37,6 +37,7 @@ function MainApp() {
 
   const { settings, updateSettings, isLoaded: isSettingsLoaded } = useSettings();
 
+  //ここでmindmapから取得
   const {
     data,
     isMapVisible,
