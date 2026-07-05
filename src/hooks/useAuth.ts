@@ -14,16 +14,19 @@ export const useAuth = () => {
 
   useEffect(() => {
     // アプリが立ち上がった瞬間に、端末（AsyncStorage）に保存されている過去のログイン情報（セッション）があるかを非同期で取得
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      setSession(session);
-      setUser(session?.user || null);
-      
-      // 過去のログイン情報がない場合は、自動で匿名ログインを実行
-      if (!session && !error) {
-        signInAnonymously();
-      } else {
-        setIsLoading(false);
-      }
+    // FORCE SIGN OUT (Temporary fix for stale tokens)
+    supabase.auth.signOut().then(() => {
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        setSession(session);
+        setUser(session?.user || null);
+        
+        // 過去のログイン情報がない場合は、自動で匿名ログインを実行
+        if (!session && !error) {
+          signInAnonymously();
+        } else {
+          setIsLoading(false);
+        }
+      });
     });
 
     // Listen to Auth state changes

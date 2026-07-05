@@ -22,7 +22,9 @@ export const useUserQuery = (token: string | null) => {
       });
       
       if (!res.ok) {
-        throw new Error('Failed to fetch user data');
+        const errText = await res.text();
+        console.error('Failed to fetch user data:', errText);
+        throw new Error('Failed to fetch user data: ' + errText);
       }
       
       return res.json();
