@@ -26,7 +26,7 @@ export const Edge: React.FC<EdgeProps> = ({ sourceX, sourceY, targetX, targetY, 
   return (
     <AnimatedLine
       animatedProps={animatedProps}
-      stroke="#60a5fa"
+      stroke="#f1f4f8"
       strokeWidth="2"
     />
   );

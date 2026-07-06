@@ -57,10 +57,10 @@ export const Node: React.FC<NodeProps> = ({ id, label, x, y, isActive, hasNote, 
   const height = 40;
 
   // 活性・非活性に応じたスタイルの決定
-  const rectFill = isActive ? "#1e3a8a" : "#1e293b";
-  const rectStroke = isActive ? "#60a5fa" : "#334155";
-  const strokeWidth = isActive ? 3 : 1;
-  const textColor = isActive ? "#ffffff" : "#94a3b8";
+  const rectFill = "#3649D6";
+  const rectStroke = "transparent";
+  const strokeWidth = 0;
+  const textColor = isActive ? "#ffffff" : "#cbd5e1";
 
   return (
     <AnimatedG 
