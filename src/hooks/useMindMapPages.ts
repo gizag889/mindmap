@@ -4,6 +4,7 @@ import { MindMapPage, MindMapData } from '../types';
 
 const PAGES_STORAGE_KEY = '@mindmap_pages';
 const LEGACY_MINDMAP_KEY = '@mindmap_data';
+const ACTIVE_PAGE_KEY = '@mindmap_active_page';
 
 export const useMindMapPages = () => {
   const [pages, setPages] = useState<MindMapPage[]>([]);
@@ -41,7 +42,13 @@ export const useMindMapPages = () => {
           }
         }
         
-        setPages(loadedPages.sort((a, b) => b.updatedAt - a.updatedAt));
+        const sortedPages = loadedPages.sort((a, b) => b.updatedAt - a.updatedAt);
+        setPages(sortedPages);
+        
+        const lastActivePageId = await AsyncStorage.getItem(ACTIVE_PAGE_KEY);
+        if (lastActivePageId && sortedPages.some(p => p.id === lastActivePageId)) {
+          setActivePageId(lastActivePageId);
+        }
       } catch (error) {
         console.error('Failed to load pages', error);
       } finally {
@@ -50,6 +57,15 @@ export const useMindMapPages = () => {
     };
     
     loadPages();
+  }, []);
+
+  const handleSetActivePageId = useCallback((id: string | null) => {
+    setActivePageId(id);
+    if (id) {
+      AsyncStorage.setItem(ACTIVE_PAGE_KEY, id).catch(e => console.error(e));
+    } else {
+      AsyncStorage.removeItem(ACTIVE_PAGE_KEY).catch(e => console.error(e));
+    }
   }, []);
 
   const createNewPage = useCallback(async () => {
@@ -65,9 +81,9 @@ export const useMindMapPages = () => {
     await AsyncStorage.setItem(PAGES_STORAGE_KEY, JSON.stringify(updatedPages));
     
     // Set as active page
-    setActivePageId(newPage.id);
+    handleSetActivePageId(newPage.id);
     return newPage.id;
-  }, [pages]);
+  }, [pages, handleSetActivePageId]);
 
   const updatePage = useCallback(async (id: string, updates: Partial<MindMapPage>) => {
     setPages(prevPages => {
@@ -86,14 +102,14 @@ export const useMindMapPages = () => {
     });
     await AsyncStorage.removeItem(`@mindmap_data_${id}`);
     if (activePageId === id) {
-      setActivePageId(null);
+      handleSetActivePageId(null);
     }
-  }, [activePageId]);
+  }, [activePageId, handleSetActivePageId]);
 
   return {
     pages,
     activePageId,
-    setActivePageId,
+    setActivePageId: handleSetActivePageId,
     createNewPage,
     updatePage,
     deletePage,
