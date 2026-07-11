@@ -8,7 +8,7 @@ interface UserData {
 
 export const useUserQuery = (token: string | null) => {
   return useQuery<UserData, Error>({
-    queryKey: ['user'],
+    queryKey: ['user', token],
     queryFn: async () => {
       if (!token) throw new Error('No token provided');
       
@@ -27,7 +27,9 @@ export const useUserQuery = (token: string | null) => {
         throw new Error('Failed to fetch user data: ' + errText);
       }
       
-      return res.json();
+      const data = await res.json();
+      console.log("Fetched user data:", data);
+      return data;
     },
     enabled: !!token,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
