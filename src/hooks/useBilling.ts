@@ -16,15 +16,29 @@ export const useBilling = () => {
 
   useEffect(() => {
     const init = async () => {
-      if (API_KEY && user?.id) {
-        Purchases.configure({ apiKey: API_KEY, appUserID: user.id });
-      } else {
-        console.warn('RevenueCat API key or User ID is missing');
+      if (!API_KEY) {
+        console.warn('RevenueCat API key is missing');
         setIsReady(true);
         return;
       }
 
       try {
+        const configured = await Purchases.isConfigured();
+        
+        if (!configured) {
+          if (user?.id) {
+            Purchases.configure({ apiKey: API_KEY, appUserID: user.id });
+          } else {
+            Purchases.configure({ apiKey: API_KEY });
+          }
+        } else if (user?.id) {
+          // If already configured and we have a user ID, ensure it matches
+          const currentAppUserID = await Purchases.getAppUserID();
+          if (currentAppUserID !== user.id) {
+            await Purchases.logIn(user.id);
+          }
+        }
+
         const info = await Purchases.getCustomerInfo();
         setCustomerInfo(info);
 
@@ -39,9 +53,7 @@ export const useBilling = () => {
       }
     };
 
-    if (user?.id) {
-      init();
-    }
+    init();
   }, [user?.id]);
 
   const purchasePackage = async (pack: PurchasesPackage) => {
