@@ -272,7 +272,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodeP
                   >
                     {node.chatHistory?.map((msg, index) => (
                       <View key={index} style={[styles.chatBubble, msg.role === 'ai' ? styles.chatBubbleAi : styles.chatBubbleUser]}>
-                        <Text style={styles.chatBubbleText}>
+                        <Text selectable={true} style={styles.chatBubbleText}>
                           {renderTextWithLinks(msg.text)}
                         </Text>
                       </View>

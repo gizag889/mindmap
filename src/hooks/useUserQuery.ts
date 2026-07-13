@@ -23,12 +23,10 @@ export const useUserQuery = (token: string | null) => {
       
       if (!res.ok) {
         const errText = await res.text();
-        console.error('Failed to fetch user data:', errText);
         throw new Error('Failed to fetch user data: ' + errText);
       }
       
       const data = await res.json();
-      // console.log("Fetched user data:", data);
       return data;
     },
     enabled: !!token,

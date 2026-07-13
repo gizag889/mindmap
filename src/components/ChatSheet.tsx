@@ -79,10 +79,14 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                         style={styles.breadcrumbTouch}
                         activeOpacity={0.7}
                       >
-                        <Text style={[
-                          styles.breadcrumbText,
-                          isLast && styles.breadcrumbActiveText
-                        ]} numberOfLines={1}>
+                        <Text
+                          selectable={true}
+                          style={[
+                            styles.breadcrumbText,
+                            isLast && styles.breadcrumbActiveText
+                          ]}
+                          numberOfLines={1}
+                        >
                           {node.label}
                         </Text>
                       </TouchableOpacity>
