@@ -28,7 +28,7 @@ export const useUserQuery = (token: string | null) => {
       }
       
       const data = await res.json();
-      console.log("Fetched user data:", data);
+      // console.log("Fetched user data:", data);
       return data;
     },
     enabled: !!token,
