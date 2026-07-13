@@ -123,6 +123,7 @@ function MainApp() {
         <ChatSheet
           activeNode={isMapVisible ? activeNode : null}
           activeNodePath={isMapVisible ? activeNodePath : []}
+          hasNodes={data.nodes && data.nodes.length > 0}
           onSendMessage={handleSendMessage}
           onAddManualNode={handleAddManualNode}
           onEditNote={() => setIsNoteModalVisible(true)}

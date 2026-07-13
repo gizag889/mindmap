@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { MindMapNode } from '../types';
 
 interface ChatSheetProps {
@@ -10,6 +10,7 @@ interface ChatSheetProps {
   onEditNote?: () => void;
   onClose: () => void;
   onNodePress?: (id: string) => void;
+  hasNodes?: boolean;
 }
 
 export const ChatSheet: React.FC<ChatSheetProps> = ({
@@ -20,6 +21,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onEditNote,
   onClose,
   onNodePress,
+  hasNodes = false,
 }) => {
   const draftsRef = React.useRef<Record<string, string>>({});
   const [message, setMessage] = useState('');
@@ -39,6 +41,10 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   const handleSend = async () => {
     if (!message.trim()) return;
+    if (hasNodes && !activeNode) {
+      Alert.alert('エラー', 'ノードが選択されていません');
+      return;
+    }
     setIsLoading(true);
     await onSendMessage(message, activeNode?.id || null);
     setMessage('');
@@ -48,6 +54,10 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   const handleManualAdd = () => {
     if (!message.trim()) return;
+    if (hasNodes && !activeNode) {
+      Alert.alert('エラー', 'ノードが選択されていません');
+      return;
+    }
     onAddManualNode(message, activeNode?.id || null);
     setMessage('');
     draftsRef.current[currentNodeId] = '';
@@ -108,7 +118,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
               style={styles.input}
               value={message}
               onChangeText={handleMessageChange}
-              placeholder={activeNode ? "ノードを追加・深掘り..." : "テーマを入力してマップ生成..."}
+              placeholder={!hasNodes ? "テーマを入力してマップ生成..." : (activeNode ? "ノードを追加・深掘り..." : "先にノードを選択してください")}
               placeholderTextColor="#94a3b8"
               editable={!isLoading}
               onSubmitEditing={handleSend}
