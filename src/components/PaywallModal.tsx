@@ -4,6 +4,7 @@ import { useBilling } from '../hooks/useBilling';
 import { useAuth } from '../hooks/useAuth';
 import { PurchasesPackage } from 'react-native-purchases';
 import { useQueryClient } from '@tanstack/react-query';
+import { getWorkerUrl } from '../utils/mindMapApi';
 
 interface Props {
   visible: boolean;
@@ -23,9 +24,7 @@ export const PaywallModal = ({ visible, reason = 'insufficient_credits', onClose
     if (result.success) {
       // Notify backend to immediately give credits or Pro status
       try {
-        // Find worker url for local test
-        const hostIp = '10.0.2.2'; // Simplified fallback for Android/iOS local dev
-        const url = `http://${hostIp}:8787/api/verify-purchase`;
+        const url = `${getWorkerUrl()}/api/verify-purchase`;
         
         await fetch(url, {
           method: 'POST',

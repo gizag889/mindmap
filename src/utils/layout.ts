@@ -31,12 +31,17 @@ export function calculateLayout(nodes: MindMapNode[], edges: MindMapEdge[], root
     // ノードのテキスト長可変化に伴い、ノード同士が重ならないよう最低限必要な弧の長さを確保
     // 子ノードの中で最大のテキスト長を取得して必要な弧の長さを動的に計算
     const maxLabelLength = children.reduce((max, child) => Math.max(max, (child.label || "").length), 0);
-    const minArcLength = Math.max(30, maxLabelLength * 20 + 40); 
-    const requiredRadiusForSpacing = children.length > 1 ? minArcLength / angleStep : 0;
     
     // 基本の階層間距離（ピボットからの派生ノードの場合は距離を短くする）
     const isPivot = node.type === 'ai_pivot';
     const radiusIncrement = isPivot ? 10 : 100;
+    
+    // AIピボットからの展開時はエッジを短くするため、弧の長さを小さく見積もる
+    const lengthMultiplier = isPivot ? 12 : 20;
+    const lengthOffset = isPivot ? 20 : 40;
+    const minArcLength = Math.max(30, maxLabelLength * lengthMultiplier + lengthOffset); 
+    
+    const requiredRadiusForSpacing = children.length > 1 ? minArcLength / angleStep : 0;
     const baseRadius = currentRadius + radiusIncrement; 
     const radius = Math.max(baseRadius, requiredRadiusForSpacing);
 

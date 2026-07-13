@@ -5,34 +5,37 @@ import { calculateLayout } from './layout';
 
 // 動的にホストIPを取得してWorkerのURLを設定
 export const getWorkerUrl = () => {
-  if (__DEV__) {
-    let hostIp: string | null = null;
+  // 開発中（Expo Go）でも強制的に本番環境のWorkerに繋ぎたい場合は以下のコメントアウトを外してください
+  return 'https://mindmap-api-prod.gizaguri0426.workers.dev';
 
-    // 1. まずバンドルURLから取得を試みる
-    const scriptURL = NativeModules.SourceCode?.scriptURL;
-    if (scriptURL) {
-      const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
-      if (match && match[1]) hostIp = match[1];
-    }
+  // if (__DEV__) {
+  //   let hostIp: string | null = null;
 
-    // 2. 取得できない場合は Expo の設定から取得する
-    if (!hostIp) {
-      const hostUri = Constants.expoConfig?.hostUri;
-      if (hostUri) {
-        hostIp = hostUri.split(':')[0];
-      }
-    }
+  //   // 1. まずバンドルURLから取得を試みる
+  //   const scriptURL = NativeModules.SourceCode?.scriptURL;
+  //   if (scriptURL) {
+  //     const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
+  //     if (match && match[1]) hostIp = match[1];
+  //   }
 
-    if (hostIp) {
-      // Androidエミュレータの場合のlocalhost変換
-      if (Platform.OS === 'android' && (hostIp === 'localhost' || hostIp === '127.0.0.1')) {
-        hostIp = '10.0.2.2';
-      }
-      return `http://${hostIp}:8787`;
-    }
-  }
-  // 全ての取得に失敗した時の最終フォールバック
-  return Platform.OS === 'android' ? 'http://10.0.2.2:8787' : 'http://localhost:8787';
+  //   // 2. 取得できない場合は Expo の設定から取得する
+  //   if (!hostIp) {
+  //     const hostUri = Constants.expoConfig?.hostUri;
+  //     if (hostUri) {
+  //       hostIp = hostUri.split(':')[0];
+  //     }
+  //   }
+
+  //   if (hostIp) {
+  //     // Androidエミュレータの場合のlocalhost変換
+  //     if (Platform.OS === 'android' && (hostIp === 'localhost' || hostIp === '127.0.0.1')) {
+  //       hostIp = '10.0.2.2';
+  //     }
+  //     return `http://${hostIp}:8787`;
+  //   }
+  // }
+  // 全ての取得に失敗した時、または本番環境(__DEV__ === false)の時のURL
+  return 'https://mindmap-api-prod.gizaguri0426.workers.dev';
 };
 
 interface SendMessageParams {
