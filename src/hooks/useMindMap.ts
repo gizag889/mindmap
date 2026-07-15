@@ -4,6 +4,7 @@ import { calculateLayout } from '../utils/layout';
 import { deleteNodeAndChildren } from '../utils/nodeOperations';
 import { useMindMapStorage } from './useMindMapStorage';
 import { useMindMapAI } from './useMindMapAI';
+import { addActivityLog } from '../utils/activityLog';
 
 export const useMindMap = (
   pageId: string | null,
@@ -40,6 +41,7 @@ export const useMindMap = (
     handleSendMessage,
     handleSendNoteChat,
   } = useMindMapAI({
+    pageId,
     data,
     setData,
     isMapVisible,
@@ -114,12 +116,24 @@ export const useMindMap = (
       const newNodes = prevData.nodes.map(node =>
         node.id === id ? { ...node, note, ...(images && { images }) } : node
       );
+      
+      const node = prevData.nodes.find(n => n.id === id);
+      if (node && pageId) {
+        addActivityLog({
+          type: 'note',
+          pageId,
+          nodeId: id,
+          nodeLabel: node.label,
+          snippet: note ? note.substring(0, 50) : 'ノートを削除しました'
+        });
+      }
+
       return {
         ...prevData,
         nodes: newNodes,
       };
     });
-  }, [setData]);
+  }, [setData, pageId]);
 
   // 「折りたたみ（開閉）状態」を切り替えて、それに応じてマップ全体のレイアウトを再計算
   const handleToggleCollapse = useCallback((id: string, isCollapsed: boolean) => {

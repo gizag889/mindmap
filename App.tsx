@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, SafeAreaView, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -31,6 +31,7 @@ function MainApp() {
   const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [pivotModalNodeId, setPivotModalNodeId] = useState<string | null>(null);
+  const [pendingNodeId, setPendingNodeId] = useState<string | null>(null);
 
   const {
     pages,
@@ -66,6 +67,13 @@ function MainApp() {
     paywallReason,
     setPaywallReason,
   } = useMindMap(activePageId, session?.access_token || null, updatePage, settings.aiMode);
+
+  useEffect(() => {
+    if (isMapVisible && pendingNodeId && data.nodes?.some(n => n.id === pendingNodeId)) {
+      setActiveNodeId(pendingNodeId);
+      setPendingNodeId(null);
+    }
+  }, [isMapVisible, pendingNodeId, data.nodes, setActiveNodeId]);
 
   if (isLoading) {
     return (
@@ -167,8 +175,13 @@ function MainApp() {
           aiMode={settings.aiMode}
           token={session?.access_token || null}
           onModeChange={(mode) => updateSettings({ aiMode: mode })}
-          onSelectPage={(id) => {
-            setActivePageId(id);
+          onSelectPage={(id, nodeId) => {
+            if (id === activePageId) {
+              if (nodeId) setActiveNodeId(nodeId);
+            } else {
+              setActivePageId(id);
+              if (nodeId) setPendingNodeId(nodeId);
+            }
             setIsSidebarVisible(false);
           }}
           onCreatePage={() => {

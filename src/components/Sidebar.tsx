@@ -4,6 +4,7 @@ import Animated, { SlideInLeft, SlideOutLeft, FadeIn, FadeOut } from 'react-nati
 import { MindMapPage } from '../types';
 import { AiMode } from '../hooks/useSettings';
 import { useUserQuery } from '../hooks/useUserQuery';
+import { ActivityLogEntry, getActivityLogs } from '../utils/activityLog';
 
 interface SidebarProps {
   pages: MindMapPage[];
@@ -11,7 +12,7 @@ interface SidebarProps {
   aiMode: AiMode;
   token: string | null;
   onModeChange: (mode: AiMode) => void;
-  onSelectPage: (id: string) => void;
+  onSelectPage: (id: string, nodeId?: string) => void;
   onCreatePage: () => void;
   onDeletePage: (id: string) => void;
   onOpenPaywall: () => void;
@@ -31,6 +32,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose
 }) => {
   const { data: userData, isLoading: isLoadingCredits } = useUserQuery(token);
+  const [activeTab, setActiveTab] = useState<'pages' | 'activity'>('pages');
+  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      getActivityLogs().then(setActivityLogs);
+    }
+  }, [activeTab]);
 
   return (
     <Animated.View 
@@ -48,48 +57,98 @@ export const Sidebar: React.FC<SidebarProps> = ({
         exiting={SlideOutLeft.duration(200)}
       >
       <View style={styles.header}>
-        <Text style={styles.title}>ページ一覧</Text>
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'pages' && styles.activeTab]}
+            onPress={() => setActiveTab('pages')}
+          >
+            <Text style={[styles.tabText, activeTab === 'pages' && styles.activeTabText]}>ページ</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'activity' && styles.activeTab]}
+            onPress={() => setActiveTab('activity')}
+          >
+            <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>履歴</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>✕</Text>
         </TouchableOpacity>
       </View>
       
-      <TouchableOpacity style={styles.createButton} onPress={onCreatePage}>
-        <Text style={styles.createButtonText}>＋ 新規ページ作成</Text>
-      </TouchableOpacity>
-      
-      <FlatList
-        data={pages}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => {
-          const isActive = item.id === activePageId;
-          const date = new Date(item.updatedAt);
-          return (
-            <TouchableOpacity 
-              style={[styles.pageItem, isActive && styles.activePageItem]}
-              onPress={() => onSelectPage(item.id)}
-            >
-              <View style={styles.pageInfo}>
-                <Text style={[styles.pageTitle, isActive && styles.activePageTitle]} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.pageDate}>
-                  {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
+      {activeTab === 'pages' ? (
+        <>
+          <TouchableOpacity style={styles.createButton} onPress={onCreatePage}>
+            <Text style={styles.createButtonText}>＋ 新規ページ作成</Text>
+          </TouchableOpacity>
+          
+          <FlatList
+            data={pages}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => {
+              const isActive = item.id === activePageId;
+              const date = new Date(item.updatedAt);
+              return (
+                <TouchableOpacity 
+                  style={[styles.pageItem, isActive && styles.activePageItem]}
+                  onPress={() => onSelectPage(item.id)}
+                >
+                  <View style={styles.pageInfo}>
+                    <Text style={[styles.pageTitle, isActive && styles.activePageTitle]} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.pageDate}>
+                      {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => {
+                      onDeletePage(item.id);
+                    }}
+                  >
+                    <Text style={styles.deleteButtonText}>🗑️</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </>
+      ) : (
+        <FlatList
+          data={activityLogs}
+          keyExtractor={item => item.id}
+          ListEmptyComponent={
+            <Text style={styles.emptyLogText}>履歴がありません</Text>
+          }
+          renderItem={({ item }) => {
+            const date = new Date(item.timestamp);
+            const isNote = item.type === 'note';
+            const page = pages.find(p => p.id === item.pageId);
+            const pageTitle = page ? page.title : '不明なページ';
+            return (
               <TouchableOpacity 
-                style={styles.deleteButton}
+                style={styles.logItem}
                 onPress={() => {
-                  // In a real app we might want an alert confirmation here
-                  onDeletePage(item.id);
+                  if (page) onSelectPage(item.pageId, item.nodeId);
                 }}
               >
-                <Text style={styles.deleteButtonText}>🗑️</Text>
+                <View style={styles.logHeader}>
+                  <Text style={styles.logTypeIcon}>{isNote ? '📝' : '💬'}</Text>
+                  <Text style={styles.logNodeLabel} numberOfLines={1}>{item.nodeLabel}</Text>
+                </View>
+                <Text style={styles.logSnippet} numberOfLines={2}>{item.snippet}</Text>
+                <View style={styles.logFooter}>
+                  <Text style={styles.logPageTitle} numberOfLines={1}>{pageTitle}</Text>
+                  <Text style={styles.logDate}>
+                    {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
               </TouchableOpacity>
-            </TouchableOpacity>
-          );
-        }}
-      />
+            );
+          }}
+        />
+      )}
 
       <View style={styles.settingsSection}>
         <View style={styles.creditsContainer}>
@@ -204,6 +263,75 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: '#ffffff',
     fontWeight: 'bold',
+    fontSize: 14,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    marginRight: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#60a5fa',
+  },
+  tabText: {
+    color: '#94a3b8',
+    fontWeight: 'bold',
+  },
+  activeTabText: {
+    color: '#60a5fa',
+  },
+  logItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  logHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  logTypeIcon: {
+    marginRight: 8,
+    fontSize: 14,
+  },
+  logNodeLabel: {
+    color: '#f8fafc',
+    fontSize: 14,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  logSnippet: {
+    color: '#cbd5e1',
+    fontSize: 13,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  logFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logPageTitle: {
+    color: '#60a5fa',
+    fontSize: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  logDate: {
+    color: '#64748b',
+    fontSize: 11,
+  },
+  emptyLogText: {
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 32,
     fontSize: 14,
   },
   pageItem: {

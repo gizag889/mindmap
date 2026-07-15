@@ -2,8 +2,10 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { MindMapData } from '../types';
 import { sendMindMapMessage, processMindMapUpdates, getWorkerUrl } from '../utils/mindMapApi';
+import { addActivityLog } from '../utils/activityLog';
 
 interface UseMindMapAIProps {
+  pageId: string | null;
   data: MindMapData;
   setData: React.Dispatch<React.SetStateAction<MindMapData>>;
   isMapVisible: boolean;
@@ -14,6 +16,7 @@ interface UseMindMapAIProps {
 }
 
 export const useMindMapAI = ({
+  pageId,
   data,
   setData,
   isMapVisible,
@@ -98,6 +101,16 @@ export const useMindMapAI = ({
       return { ...prevData, nodes: newNodes };
     });
 
+    if (pageId) {
+      addActivityLog({
+        type: 'chat',
+        pageId,
+        nodeId,
+        nodeLabel: node.label,
+        snippet: `You: ${message}`
+      });
+    }
+
     setIsNoteChatLoading(true);
     try {
       const model = aiMode === 'pro' ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
@@ -151,7 +164,7 @@ export const useMindMapAI = ({
     } finally {
       setIsNoteChatLoading(false);
     }
-  }, [data.nodes, aiMode, token, setData]);
+  }, [data.nodes, aiMode, token, setData, pageId]);
 
   return {
     isGenerating,
