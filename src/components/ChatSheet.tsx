@@ -7,6 +7,7 @@ interface ChatSheetProps {
   activeNodePath?: MindMapNode[];
   onSendMessage: (message: string, parentId: string | null) => Promise<void>;
   onAddManualNode: (label: string, parentId: string | null) => void;
+  onRenameNode?: (id: string, newLabel: string) => void;
   onEditNote?: () => void;
   onClose: () => void;
   onNodePress?: (id: string) => void;
@@ -18,6 +19,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   activeNodePath = [],
   onSendMessage,
   onAddManualNode,
+  onRenameNode,
   onEditNote,
   onClose,
   onNodePress,
@@ -26,12 +28,15 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   const draftsRef = React.useRef<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameText, setRenameText] = useState('');
 
   const currentNodeId = activeNode?.id || 'root';
 
   // ノード選択切り替え時に、下書きメッセージをロードする
   React.useEffect(() => {
     setMessage(draftsRef.current[currentNodeId] || '');
+    setIsRenaming(false);
   }, [currentNodeId]);
 
   const handleMessageChange = (text: string) => {
@@ -83,23 +88,63 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                   const isLast = index === activeNodePath.length - 1;
                   return (
                     <View key={node.id} style={styles.breadcrumbItemWrapper}>
-                      <TouchableOpacity
-                        onPress={() => onNodePress && onNodePress(node.id)}
-                        disabled={isLast || !onNodePress}
-                        style={styles.breadcrumbTouch}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          selectable={true}
-                          style={[
-                            styles.breadcrumbText,
-                            isLast && styles.breadcrumbActiveText
-                          ]}
-                          numberOfLines={1}
+                      {isLast && isRenaming ? (
+                        <TextInput
+                          value={renameText}
+                          onChangeText={setRenameText}
+                          autoFocus
+                          style={[styles.breadcrumbText, styles.breadcrumbActiveText, styles.renameInput]}
+                          onBlur={() => {
+                            if (renameText.trim() && renameText !== node.label && onRenameNode) {
+                              onRenameNode(node.id, renameText);
+                            }
+                            setIsRenaming(false);
+                          }}
+                          onSubmitEditing={() => {
+                            if (renameText.trim() && renameText !== node.label && onRenameNode) {
+                              onRenameNode(node.id, renameText);
+                            }
+                            setIsRenaming(false);
+                          }}
+                        />
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => onNodePress && onNodePress(node.id)}
+                          onLongPress={() => {
+                            if (isLast && onRenameNode) {
+                              setIsRenaming(true);
+                              setRenameText(node.label);
+                            }
+                          }}
+                          disabled={!onNodePress && !isLast}
+                          style={styles.breadcrumbTouch}
+                          activeOpacity={0.7}
                         >
-                          {node.label}
-                        </Text>
-                      </TouchableOpacity>
+                          <Text
+                            selectable={true}
+                            style={[
+                              styles.breadcrumbText,
+                              isLast && styles.breadcrumbActiveText
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {node.label}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      
+                      {isLast && !isRenaming && onRenameNode && (
+                        <TouchableOpacity 
+                          onPress={() => {
+                            setIsRenaming(true);
+                            setRenameText(node.label);
+                          }}
+                          style={styles.renameIconButton}
+                        >
+                          <Text style={styles.renameIconText}>✏️</Text>
+                        </TouchableOpacity>
+                      )}
+
                       {!isLast && (
                         <Text style={styles.breadcrumbSeparator}>&gt;</Text>
                       )}
@@ -226,6 +271,21 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 12,
     marginHorizontal: 1,
+  },
+  renameInput: {
+    minWidth: 60,
+    padding: 0,
+    margin: 0,
+    backgroundColor: '#0f172a',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+  },
+  renameIconButton: {
+    marginLeft: 6,
+    padding: 2,
+  },
+  renameIconText: {
+    fontSize: 12,
   },
   closeButton: {
     padding: 4,

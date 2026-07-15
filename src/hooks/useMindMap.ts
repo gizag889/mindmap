@@ -135,6 +135,23 @@ export const useMindMap = (
     });
   }, [setData, pageId]);
 
+  const handleRenameNode = useCallback((id: string, newLabel: string) => {
+    if (!newLabel.trim()) return;
+    setData(prevData => {
+      const newNodes = prevData.nodes.map(node =>
+        node.id === id ? { ...node, label: newLabel.trim() } : node
+      );
+      
+      const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
+      const layoutedNodes = rootId ? calculateLayout(newNodes, prevData.edges, rootId) : newNodes;
+
+      return {
+        ...prevData,
+        nodes: layoutedNodes,
+      };
+    });
+  }, [setData]);
+
   // 「折りたたみ（開閉）状態」を切り替えて、それに応じてマップ全体のレイアウトを再計算
   const handleToggleCollapse = useCallback((id: string, isCollapsed: boolean) => {
     setData(prevData => {
@@ -179,6 +196,7 @@ export const useMindMap = (
     handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
+    handleRenameNode,
     handleToggleCollapse,
     handleDeleteNode,
     confirmDeleteNode,

@@ -56,6 +56,7 @@ function MainApp() {
     handleSendNoteChat,
     handleAddManualNode,
     handleUpdateNodeNote,
+    handleRenameNode,
     handleToggleCollapse,
     handleNodePress,
     handleDeleteNode,
@@ -134,6 +135,7 @@ function MainApp() {
           hasNodes={data.nodes && data.nodes.length > 0}
           onSendMessage={handleSendMessage}
           onAddManualNode={handleAddManualNode}
+          onRenameNode={handleRenameNode}
           onEditNote={() => setIsNoteModalVisible(true)}
           onClose={() => setActiveNodeId(null)}
           onNodePress={handleNodePress}
