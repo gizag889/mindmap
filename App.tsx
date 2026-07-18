@@ -12,6 +12,7 @@ import { useSettings } from './src/hooks/useSettings';
 import { ConfirmModal } from './src/components/ConfirmModal';
 import { PivotModal } from './src/components/PivotModal';
 import { PaywallModal } from './src/components/PaywallModal';
+import { useMindMapStore } from './src/store/useMindMapStore';
 import { useAuth } from './src/hooks/useAuth';
 import { ActivityIndicator } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -47,27 +48,29 @@ function MainApp() {
 
   //ここでmindmapから取得
   const {
-    data,
-    isMapVisible,
-    activeNodeId,
     activeNode,
     activeNodePath,
     handleSendMessage,
     handleSendNoteChat,
-    handleAddManualNode,
-    handleUpdateNodeNote,
-    handleRenameNode,
-    handleToggleCollapse,
-    handleNodePress,
-    handleDeleteNode,
-    confirmDeleteNode,
-    cancelDeleteNode,
-    nodeIdToDelete,
-    setActiveNodeId,
-    isNoteChatLoading,
-    paywallReason,
-    setPaywallReason,
   } = useMindMap(activePageId, session?.access_token || null, updatePage, settings.aiMode);
+
+  const data = useMindMapStore(state => state.data);
+  const isMapVisible = useMindMapStore(state => state.isMapVisible);
+  const activeNodeId = useMindMapStore(state => state.activeNodeId);
+  const setActiveNodeId = useMindMapStore(state => state.setActiveNodeId);
+  const nodeIdToDelete = useMindMapStore(state => state.nodeIdToDelete);
+  const isNoteChatLoading = useMindMapStore(state => state.isNoteChatLoading);
+  const paywallReason = useMindMapStore(state => state.paywallReason);
+  const setPaywallReason = useMindMapStore(state => state.setPaywallReason);
+  
+  const handleAddManualNode = useMindMapStore(state => state.handleAddManualNode);
+  const handleUpdateNodeNote = useMindMapStore(state => state.handleUpdateNodeNote);
+  const handleRenameNode = useMindMapStore(state => state.handleRenameNode);
+  const handleToggleCollapse = useMindMapStore(state => state.handleToggleCollapse);
+  const handleDeleteNode = useMindMapStore(state => state.setNodeIdToDelete);
+  const confirmDeleteNode = useMindMapStore(state => state.confirmDeleteNode);
+  const cancelDeleteNode = useMindMapStore(state => state.cancelDeleteNode);
+  const handleNodePress = useMindMapStore(state => state.setActiveNodeId);
 
   useEffect(() => {
     if (isMapVisible && pendingNodeId && data.nodes?.some(n => n.id === pendingNodeId)) {

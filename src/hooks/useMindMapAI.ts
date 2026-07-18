@@ -1,35 +1,35 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { MindMapData } from '../types';
 import { sendMindMapMessage, processMindMapUpdates, getWorkerUrl } from '../utils/mindMapApi';
 import { addActivityLog } from '../utils/activityLog';
+import { useMindMapStore } from '../store/useMindMapStore';
 
 interface UseMindMapAIProps {
   pageId: string | null;
-  data: MindMapData;
-  setData: React.Dispatch<React.SetStateAction<MindMapData>>;
-  isMapVisible: boolean;
-  setIsMapVisible: React.Dispatch<React.SetStateAction<boolean>>;
-  setActiveNodeId: React.Dispatch<React.SetStateAction<string | null>>;
   token: string | null;
   aiMode: 'flash' | 'pro';
 }
 
 export const useMindMapAI = ({
   pageId,
-  data,
-  setData,
-  isMapVisible,
-  setIsMapVisible,
-  setActiveNodeId,
   token,
   aiMode,
 }: UseMindMapAIProps) => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState<Error | null>(null);
-  const [isNoteChatLoading, setIsNoteChatLoading] = useState(false);
-  const [paywallReason, setPaywallReason] = useState<'insufficient_credits' | 'add_credits' | null>(null);
   const queryClient = useQueryClient();
+
+  const data = useMindMapStore((state) => state.data);
+  const setData = useMindMapStore((state) => state.setData);
+  const isMapVisible = useMindMapStore((state) => state.isMapVisible);
+  const setIsMapVisible = useMindMapStore((state) => state.setIsMapVisible);
+  const setActiveNodeId = useMindMapStore((state) => state.setActiveNodeId);
+  const isGenerating = useMindMapStore((state) => state.isGenerating);
+  const setIsGenerating = useMindMapStore((state) => state.setIsGenerating);
+  const generationError = useMindMapStore((state) => state.generationError);
+  const setGenerationError = useMindMapStore((state) => state.setGenerationError);
+  const isNoteChatLoading = useMindMapStore((state) => state.isNoteChatLoading);
+  const setIsNoteChatLoading = useMindMapStore((state) => state.setIsNoteChatLoading);
+  const paywallReason = useMindMapStore((state) => state.paywallReason);
+  const setPaywallReason = useMindMapStore((state) => state.setPaywallReason);
 
   const handleSendMessage = useCallback(async (message: string, parentId: string | null) => {
     setIsGenerating(true);
@@ -72,7 +72,7 @@ export const useMindMapAI = ({
     } finally {
       setIsGenerating(false);
     }
-  }, [aiMode, data.nodes, isMapVisible, token, setData, setIsMapVisible, setActiveNodeId]);
+  }, [aiMode, data.nodes, isMapVisible, token, setData, setIsMapVisible, setActiveNodeId, setIsGenerating, setGenerationError, setPaywallReason, queryClient]);
 
   const handleSendNoteChat = useCallback(async (message: string, nodeId: string) => {
     const node = data.nodes.find(n => n.id === nodeId);
@@ -164,7 +164,7 @@ export const useMindMapAI = ({
     } finally {
       setIsNoteChatLoading(false);
     }
-  }, [data.nodes, aiMode, token, setData, pageId]);
+  }, [data.nodes, aiMode, token, setData, pageId, setIsNoteChatLoading, setPaywallReason, queryClient]);
 
   return {
     isGenerating,

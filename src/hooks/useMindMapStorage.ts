@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MindMapData, MindMapPage } from '../types';
+import { MindMapPage } from '../types';
+import { useMindMapStore } from '../store/useMindMapStore';
 
 export const useMindMapStorage = (
   pageId: string | null,
   onUpdatePage?: (id: string, updates: Partial<MindMapPage>) => void
 ) => {
-  const [data, setData] = useState<MindMapData>({ nodes: [], edges: [] });
-  const [isLoaded, setIsLoaded] = useState(false);
+  const data = useMindMapStore((state) => state.data);
+  const setData = useMindMapStore((state) => state.setData);
+  const isLoaded = useMindMapStore((state) => state.isLoaded);
+  const setIsLoaded = useMindMapStore((state) => state.setIsLoaded);
 
   useEffect(() => {
     if (!pageId) {
@@ -34,7 +37,7 @@ export const useMindMapStorage = (
       }
     };
     loadData();
-  }, [pageId]);
+  }, [pageId, setData, setIsLoaded]);
 
   //最新のデータを AsyncStorage に書き込む（保存する）。
   useEffect(() => {
@@ -53,8 +56,9 @@ export const useMindMapStorage = (
       }
     };
     saveData();
-  }, [data, isLoaded, pageId]);
+  }, [data, isLoaded, pageId, onUpdatePage]);
 
+  // Optionally return these if still needed by the legacy hook
   return {
     data,
     setData,
