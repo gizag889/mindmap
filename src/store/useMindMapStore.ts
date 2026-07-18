@@ -118,6 +118,8 @@ export interface UISlice {
   setIsSidebarVisible: (visible: boolean) => void;
   paywallReason: 'insufficient_credits' | 'add_credits' | null;
   setPaywallReason: (reason: 'insufficient_credits' | 'add_credits' | null) => void;
+  pivotModalNodeId: string | null;
+  setPivotModalNodeId: (id: string | null) => void;
 }
 
 const createUISlice: StateCreator<MindMapState, [], [], UISlice> = (set) => ({
@@ -135,6 +137,8 @@ const createUISlice: StateCreator<MindMapState, [], [], UISlice> = (set) => ({
   setIsSidebarVisible: (isSidebarVisible) => set({ isSidebarVisible }),
   paywallReason: null,
   setPaywallReason: (paywallReason) => set({ paywallReason }),
+  pivotModalNodeId: null,
+  setPivotModalNodeId: (pivotModalNodeId) => set({ pivotModalNodeId }),
 });
 
 // -----------------------------

@@ -30,7 +30,6 @@ export default function App() {
 function MainApp() {
   const { session, user, isLoading, linkGoogleAccount } = useAuth();
   const setIsSidebarVisible = useMindMapStore(state => state.setIsSidebarVisible);
-  const [pivotModalNodeId, setPivotModalNodeId] = useState<string | null>(null);
 
   const {
     pages,
@@ -64,6 +63,7 @@ function MainApp() {
   const setActiveNodeId = useMindMapStore(state => state.setActiveNodeId);
   const pendingNodeId = useMindMapStore(state => state.pendingNodeId);
   const setPendingNodeId = useMindMapStore(state => state.setPendingNodeId);
+  const setPivotModalNodeId = useMindMapStore(state => state.setPivotModalNodeId);
   const isNoteChatLoading = useMindMapStore(state => state.isNoteChatLoading);
   const paywallReason = useMindMapStore(state => state.paywallReason);
   const setPaywallReason = useMindMapStore(state => state.setPaywallReason);
@@ -148,12 +148,7 @@ function MainApp() {
         <ConfirmModal />
       )}
       {isMapVisible && activePageId && (
-        <PivotModal
-          visible={pivotModalNodeId !== null}
-          node={data.nodes.find(n => n.id === pivotModalNodeId) || null}
-          onToggleCollapse={handleToggleCollapse}
-          onClose={() => setPivotModalNodeId(null)}
-        />
+        <PivotModal />
       )}
       <Sidebar />
       <PaywallModal 

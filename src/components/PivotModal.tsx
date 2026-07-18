@@ -1,21 +1,19 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal } from 'react-native';
-import { MindMapNode } from '../types';
+import { useMindMapStore } from '../store/useMindMapStore';
 
-interface PivotModalProps {
-  visible: boolean;
-  node: MindMapNode | null;
-  onToggleCollapse: (id: string, isCollapsed: boolean) => void;
-  onClose: () => void;
-}
+export const PivotModal: React.FC = () => {
+  const pivotModalNodeId = useMindMapStore(state => state.pivotModalNodeId);
+  const setPivotModalNodeId = useMindMapStore(state => state.setPivotModalNodeId);
+  const nodes = useMindMapStore(state => state.data.nodes);
+  const onToggleCollapse = useMindMapStore(state => state.handleToggleCollapse);
 
-export const PivotModal: React.FC<PivotModalProps> = ({
-  visible,
-  node,
-  onToggleCollapse,
-  onClose,
-}) => {
-  if (!node) return null;
+  const node = nodes.find(n => n.id === pivotModalNodeId) || null;
+  const visible = pivotModalNodeId !== null;
+
+  const onClose = () => setPivotModalNodeId(null);
+
+  if (!node || !visible) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
