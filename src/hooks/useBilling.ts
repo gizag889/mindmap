@@ -42,10 +42,11 @@ export const useBilling = () => {
         const info = await Purchases.getCustomerInfo();
         setCustomerInfo(info);
 
-        const offerings = await Purchases.getOfferings();
-        if (offerings.current && offerings.current.availablePackages.length !== 0) {
-          setPackages(offerings.current.availablePackages);
-        }
+        // TODO: 課金設定を後回しにするため一時的にコメントアウト
+        // const offerings = await Purchases.getOfferings();
+        // if (offerings.current && offerings.current.availablePackages.length !== 0) {
+        //   setPackages(offerings.current.availablePackages);
+        // }
       } catch (e) {
         console.error('Error fetching RevenueCat data', e);
       } finally {

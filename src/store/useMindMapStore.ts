@@ -22,6 +22,12 @@ export interface MindMapState {
   setIsNoteChatLoading: (isLoading: boolean) => void;
   paywallReason: 'insufficient_credits' | 'add_credits' | null;
   setPaywallReason: (reason: 'insufficient_credits' | 'add_credits' | null) => void;
+  isNoteModalVisible: boolean;
+  setIsNoteModalVisible: (visible: boolean) => void;
+  isSidebarVisible: boolean;
+  setIsSidebarVisible: (visible: boolean) => void;
+  pendingNodeId: string | null;
+  setPendingNodeId: (id: string | null) => void;
 
   // Actions
   handleAddManualNode: (label: string, parentId: string | null) => void;
@@ -53,6 +59,12 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setIsNoteChatLoading: (isNoteChatLoading) => set({ isNoteChatLoading }),
   paywallReason: null,
   setPaywallReason: (paywallReason) => set({ paywallReason }),
+  isNoteModalVisible: false,
+  setIsNoteModalVisible: (isNoteModalVisible) => set({ isNoteModalVisible }),
+  isSidebarVisible: false,
+  setIsSidebarVisible: (isSidebarVisible) => set({ isSidebarVisible }),
+  pendingNodeId: null,
+  setPendingNodeId: (pendingNodeId) => set({ pendingNodeId }),
 
   handleAddManualNode: (label: string, parentId: string | null) => {
     if (!label.trim()) return;

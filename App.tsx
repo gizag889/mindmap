@@ -7,8 +7,8 @@ import { ChatSheet } from './src/components/ChatSheet';
 import { NoteModal } from './src/components/NoteModal';
 import { Sidebar } from './src/components/Sidebar';
 import { useMindMap } from './src/hooks/useMindMap';
-import { useMindMapPages } from './src/hooks/useMindMapPages';
-import { useSettings } from './src/hooks/useSettings';
+import { useMindMapPagesStore } from './src/hooks/useMindMapPages';
+import { useSettingsStore } from './src/hooks/useSettings';
 import { ConfirmModal } from './src/components/ConfirmModal';
 import { PivotModal } from './src/components/PivotModal';
 import { PaywallModal } from './src/components/PaywallModal';
@@ -29,10 +29,8 @@ export default function App() {
 
 function MainApp() {
   const { session, user, isLoading, linkGoogleAccount } = useAuth();
-  const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const setIsSidebarVisible = useMindMapStore(state => state.setIsSidebarVisible);
   const [pivotModalNodeId, setPivotModalNodeId] = useState<string | null>(null);
-  const [pendingNodeId, setPendingNodeId] = useState<string | null>(null);
 
   const {
     pages,
@@ -41,10 +39,16 @@ function MainApp() {
     createNewPage,
     updatePage,
     deletePage,
-    isLoaded: isPagesLoaded
-  } = useMindMapPages();
+    isLoaded: isPagesLoaded,
+    loadPages
+  } = useMindMapPagesStore();
 
-  const { settings, updateSettings, isLoaded: isSettingsLoaded } = useSettings();
+  const { settings, updateSettings, isLoaded: isSettingsLoaded, loadSettings } = useSettingsStore();
+
+  useEffect(() => {
+    loadPages();
+    loadSettings();
+  }, [loadPages, loadSettings]);
 
   //ここでmindmapから取得
   const {
@@ -58,18 +62,18 @@ function MainApp() {
   const isMapVisible = useMindMapStore(state => state.isMapVisible);
   const activeNodeId = useMindMapStore(state => state.activeNodeId);
   const setActiveNodeId = useMindMapStore(state => state.setActiveNodeId);
-  const nodeIdToDelete = useMindMapStore(state => state.nodeIdToDelete);
+  const pendingNodeId = useMindMapStore(state => state.pendingNodeId);
+  const setPendingNodeId = useMindMapStore(state => state.setPendingNodeId);
   const isNoteChatLoading = useMindMapStore(state => state.isNoteChatLoading);
   const paywallReason = useMindMapStore(state => state.paywallReason);
   const setPaywallReason = useMindMapStore(state => state.setPaywallReason);
+  const setIsNoteModalVisible = useMindMapStore(state => state.setIsNoteModalVisible);
   
   const handleAddManualNode = useMindMapStore(state => state.handleAddManualNode);
   const handleUpdateNodeNote = useMindMapStore(state => state.handleUpdateNodeNote);
   const handleRenameNode = useMindMapStore(state => state.handleRenameNode);
   const handleToggleCollapse = useMindMapStore(state => state.handleToggleCollapse);
   const handleDeleteNode = useMindMapStore(state => state.setNodeIdToDelete);
-  const confirmDeleteNode = useMindMapStore(state => state.confirmDeleteNode);
-  const cancelDeleteNode = useMindMapStore(state => state.cancelDeleteNode);
   const handleNodePress = useMindMapStore(state => state.setActiveNodeId);
 
   useEffect(() => {
@@ -138,25 +142,10 @@ function MainApp() {
         />
       )}
       {isMapVisible && activePageId && (
-        <NoteModal
-          visible={isNoteModalVisible}
-          node={activeNode}
-          activeNodePath={isMapVisible ? activeNodePath : []}
-          onSave={handleUpdateNodeNote}
-          onClose={() => setIsNoteModalVisible(false)}
-          onSendChat={handleSendNoteChat}
-          isChatLoading={isNoteChatLoading}
-        />
+        <NoteModal onSendChat={handleSendNoteChat} />
       )}
       {isMapVisible && activePageId && (
-        <ConfirmModal
-          visible={nodeIdToDelete !== null}
-          title="ノードの削除"
-          message="本当に削除しますか？"
-          warningMessage="※削除されるノード以下の子ノードすべて削除されます。"
-          onConfirm={confirmDeleteNode}
-          onCancel={cancelDeleteNode}
-        />
+        <ConfirmModal />
       )}
       {isMapVisible && activePageId && (
         <PivotModal
@@ -166,34 +155,7 @@ function MainApp() {
           onClose={() => setPivotModalNodeId(null)}
         />
       )}
-      {isSidebarVisible && (
-        <Sidebar
-          pages={pages}
-          activePageId={activePageId}
-          aiMode={settings.aiMode}
-          token={session?.access_token || null}
-          onModeChange={(mode) => updateSettings({ aiMode: mode })}
-          onSelectPage={(id, nodeId) => {
-            if (id === activePageId) {
-              if (nodeId) setActiveNodeId(nodeId);
-            } else {
-              setActivePageId(id);
-              if (nodeId) setPendingNodeId(nodeId);
-            }
-            setIsSidebarVisible(false);
-          }}
-          onCreatePage={() => {
-            createNewPage();
-            setIsSidebarVisible(false);
-          }}
-          onDeletePage={deletePage}
-          onOpenPaywall={() => {
-            setPaywallReason('add_credits');
-            setIsSidebarVisible(false);
-          }}
-          onClose={() => setIsSidebarVisible(false)}
-        />
-      )}
+      <Sidebar />
       <PaywallModal 
         visible={paywallReason !== null} 
         reason={paywallReason || 'add_credits'}

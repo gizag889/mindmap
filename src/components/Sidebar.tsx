@@ -6,31 +6,54 @@ import { AiMode } from '../hooks/useSettings';
 import { useUserQuery } from '../hooks/useUserQuery';
 import { ActivityLogEntry, getActivityLogs } from '../utils/activityLog';
 
-interface SidebarProps {
-  pages: MindMapPage[];
-  activePageId: string | null;
-  aiMode: AiMode;
-  token: string | null;
-  onModeChange: (mode: AiMode) => void;
-  onSelectPage: (id: string, nodeId?: string) => void;
-  onCreatePage: () => void;
-  onDeletePage: (id: string) => void;
-  onOpenPaywall: () => void;
-  onClose: () => void;
-}
+import { useMindMapStore } from '../store/useMindMapStore';
+import { useMindMapPagesStore } from '../hooks/useMindMapPages';
+import { useSettingsStore } from '../hooks/useSettings';
+import { useAuth } from '../hooks/useAuth';
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  pages,
-  activePageId,
-  aiMode,
-  token,
-  onModeChange,
-  onSelectPage,
-  onCreatePage,
-  onDeletePage,
-  onOpenPaywall,
-  onClose
-}) => {
+export const Sidebar: React.FC = () => {
+  const { session } = useAuth();
+  const token = session?.access_token || null;
+
+  const { settings, updateSettings } = useSettingsStore();
+  const aiMode = settings.aiMode;
+
+  const { pages, activePageId, createNewPage, deletePage, setActivePageId } = useMindMapPagesStore();
+
+  const isSidebarVisible = useMindMapStore(state => state.isSidebarVisible);
+  const setIsSidebarVisible = useMindMapStore(state => state.setIsSidebarVisible);
+  const setActiveNodeId = useMindMapStore(state => state.setActiveNodeId);
+  const setPendingNodeId = useMindMapStore(state => state.setPendingNodeId);
+  const setPaywallReason = useMindMapStore(state => state.setPaywallReason);
+
+  const onClose = () => setIsSidebarVisible(false);
+
+  const onModeChange = (mode: AiMode) => updateSettings({ aiMode: mode });
+
+  const onSelectPage = (id: string, nodeId?: string) => {
+    if (id === activePageId) {
+      if (nodeId) setActiveNodeId(nodeId);
+    } else {
+      setActivePageId(id);
+      if (nodeId) setPendingNodeId(nodeId);
+    }
+    setIsSidebarVisible(false);
+  };
+
+  const onCreatePage = () => {
+    createNewPage();
+    setIsSidebarVisible(false);
+  };
+
+  const onDeletePage = (id: string) => {
+    deletePage(id);
+  };
+
+  const onOpenPaywall = () => {
+    setPaywallReason('add_credits');
+    setIsSidebarVisible(false);
+  };
+
   const { data: userData, isLoading: isLoadingCredits } = useUserQuery(token);
   const [activeTab, setActiveTab] = useState<'pages' | 'activity'>('pages');
   const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
@@ -40,6 +63,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       getActivityLogs().then(setActivityLogs);
     }
   }, [activeTab]);
+
+  if (!isSidebarVisible) return null;
 
   return (
     <Animated.View 

@@ -1,23 +1,24 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal } from 'react-native';
 
+import { useMindMapStore } from '../store/useMindMapStore';
+
 interface ConfirmModalProps {
-  visible: boolean;
-  title: string;
-  message: string;
+  title?: string;
+  message?: string;
   warningMessage?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
-  visible,
-  title,
-  message,
-  warningMessage,
-  onConfirm,
-  onCancel,
+  title = "ノードの削除",
+  message = "本当に削除しますか？",
+  warningMessage = "※削除されるノード以下の子ノードすべて削除されます。",
 }) => {
+  const nodeIdToDelete = useMindMapStore(state => state.nodeIdToDelete);
+  const onConfirm = useMindMapStore(state => state.confirmDeleteNode);
+  const onCancel = useMindMapStore(state => state.cancelDeleteNode);
+  
+  const visible = nodeIdToDelete !== null;
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>

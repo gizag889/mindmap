@@ -3,19 +3,44 @@ import { StyleSheet, View, Text, TouchableOpacity, Modal, KeyboardAvoidingView, 
 import { MindMapNode } from '../types';
 import { NoteTab } from './NoteTab';
 import { AIChatTab } from './AIChatTab';
+import { useMindMapStore } from '../store/useMindMapStore';
 
 interface NoteModalProps {
-  visible: boolean;
-  node: MindMapNode | null;
-  activeNodePath?: MindMapNode[];
-  onSave: (nodeId: string, note: string, images?: string[]) => void;
-  onClose: () => void;
   onSendChat?: (message: string, nodeId: string) => void;
-  isChatLoading?: boolean;
 }
 
-export const NoteModal: React.FC<NoteModalProps> = ({ visible, node, activeNodePath = [], onSave, onClose, onSendChat, isChatLoading }) => {
+export const NoteModal: React.FC<NoteModalProps> = ({ onSendChat }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'chat'>('note');
+
+  const visible = useMindMapStore(state => state.isNoteModalVisible);
+  const setIsNoteModalVisible = useMindMapStore(state => state.setIsNoteModalVisible);
+  const isMapVisible = useMindMapStore(state => state.isMapVisible);
+  const data = useMindMapStore(state => state.data);
+  const activeNodeId = useMindMapStore(state => state.activeNodeId);
+  const onSave = useMindMapStore(state => state.handleUpdateNodeNote);
+  const isChatLoading = useMindMapStore(state => state.isNoteChatLoading);
+  
+  const onClose = () => setIsNoteModalVisible(false);
+
+  const node = React.useMemo(() => isMapVisible ? (data.nodes.find(n => n.id === activeNodeId) || null) : null, [data.nodes, activeNodeId, isMapVisible]);
+
+  const activeNodePath = React.useMemo(() => {
+    if (!isMapVisible || !activeNodeId) return [];
+    const path: MindMapNode[] = [];
+    let currentId: string | null | undefined = activeNodeId;
+    const visited = new Set<string>();
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const n = data.nodes.find(x => x.id === currentId);
+      if (n) {
+        path.unshift(n);
+        currentId = n.parentId;
+      } else {
+        break;
+      }
+    }
+    return path;
+  }, [activeNodeId, data.nodes, isMapVisible]);
 
   if (!node) return null;
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SETTINGS_STORAGE_KEY = '@mindmap_settings';
@@ -13,39 +13,37 @@ const defaultSettings: AppSettings = {
   aiMode: 'flash',
 };
 
-export const useSettings = () => {
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  const [isLoaded, setIsLoaded] = useState(false);
+interface SettingsState {
+  settings: AppSettings;
+  isLoaded: boolean;
+  updateSettings: (updates: Partial<AppSettings>) => void;
+  loadSettings: () => Promise<void>;
+}
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const jsonValue = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (jsonValue != null) {
-          setSettings(JSON.parse(jsonValue));
-        }
-      } catch (e) {
-        console.error('Error loading settings:', e);
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-    loadSettings();
-  }, []);
-
-  const updateSettings = async (newSettings: Partial<AppSettings>) => {
+export const useSettingsStore = create<SettingsState>((set, get) => ({
+  settings: defaultSettings,
+  isLoaded: false,
+  updateSettings: async (updates: Partial<AppSettings>) => {
+    const newSettings = { ...get().settings, ...updates };
+    set({ settings: newSettings });
     try {
-      const updated = { ...settings, ...newSettings };
-      setSettings(updated);
-      await AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error('Error saving settings:', e);
+      await AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
+    } catch (error) {
+      console.error('Failed to save settings:', error);
     }
-  };
-
-  return {
-    settings,
-    updateSettings,
-    isLoaded,
-  };
-};
+  },
+  loadSettings: async () => {
+    if (get().isLoaded) return;
+    try {
+      const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (stored) {
+        set({ settings: { ...defaultSettings, ...JSON.parse(stored) }, isLoaded: true });
+      } else {
+        set({ isLoaded: true });
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      set({ isLoaded: true });
+    }
+  }
+}));
