@@ -2,29 +2,48 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { MindMapNode } from '../types';
 
+import { useMindMapStore } from '../store/useMindMapStore';
+
 interface ChatSheetProps {
-  activeNode: MindMapNode | null;
-  activeNodePath?: MindMapNode[];
   onSendMessage: (message: string, parentId: string | null) => Promise<void>;
-  onAddManualNode: (label: string, parentId: string | null) => void;
-  onRenameNode?: (id: string, newLabel: string) => void;
   onEditNote?: () => void;
-  onClose: () => void;
-  onNodePress?: (id: string) => void;
-  hasNodes?: boolean;
 }
 
 export const ChatSheet: React.FC<ChatSheetProps> = ({
-  activeNode,
-  activeNodePath = [],
   onSendMessage,
-  onAddManualNode,
-  onRenameNode,
   onEditNote,
-  onClose,
-  onNodePress,
-  hasNodes = false,
 }) => {
+  const data = useMindMapStore(state => state.data);
+  const activeNodeId = useMindMapStore(state => state.activeNodeId);
+  const isMapVisible = useMindMapStore(state => state.isMapVisible);
+  const onAddManualNode = useMindMapStore(state => state.handleAddManualNode);
+  const onRenameNode = useMindMapStore(state => state.handleRenameNode);
+  const setActiveNodeId = useMindMapStore(state => state.setActiveNodeId);
+
+  const hasNodes = data.nodes && data.nodes.length > 0;
+
+  const activeNode = React.useMemo(() => isMapVisible ? (data.nodes.find(n => n.id === activeNodeId) || null) : null, [data.nodes, activeNodeId, isMapVisible]);
+
+  const activeNodePath = React.useMemo(() => {
+    if (!isMapVisible || !activeNodeId) return [];
+    const path: MindMapNode[] = [];
+    let currentId: string | null | undefined = activeNodeId;
+    const visited = new Set<string>();
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const node = data.nodes.find(n => n.id === currentId);
+      if (node) {
+        path.unshift(node);
+        currentId = node.parentId;
+      } else {
+        break;
+      }
+    }
+    return path;
+  }, [activeNodeId, data.nodes, isMapVisible]);
+
+  const onClose = () => setActiveNodeId(null);
+  const onNodePress = (id: string) => setActiveNodeId(id);
   const draftsRef = React.useRef<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -95,13 +114,13 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                           autoFocus
                           style={[styles.breadcrumbText, styles.breadcrumbActiveText, styles.renameInput]}
                           onBlur={() => {
-                            if (renameText.trim() && renameText !== node.label && onRenameNode) {
+                            if (renameText.trim() && renameText !== node.label) {
                               onRenameNode(node.id, renameText);
                             }
                             setIsRenaming(false);
                           }}
                           onSubmitEditing={() => {
-                            if (renameText.trim() && renameText !== node.label && onRenameNode) {
+                            if (renameText.trim() && renameText !== node.label) {
                               onRenameNode(node.id, renameText);
                             }
                             setIsRenaming(false);
@@ -111,7 +130,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                         <TouchableOpacity
                           onPress={() => onNodePress && onNodePress(node.id)}
                           onLongPress={() => {
-                            if (isLast && onRenameNode) {
+                            if (isLast) {
                               setIsRenaming(true);
                               setRenameText(node.label);
                             }
@@ -133,7 +152,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                         </TouchableOpacity>
                       )}
                       
-                      {isLast && !isRenaming && onRenameNode && (
+                      {isLast && !isRenaming && (
                         <TouchableOpacity 
                           onPress={() => {
                             setIsRenaming(true);

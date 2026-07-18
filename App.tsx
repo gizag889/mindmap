@@ -133,15 +133,8 @@ function MainApp() {
       </View>
       {!!activePageId && (
         <ChatSheet
-          activeNode={isMapVisible ? activeNode : null}
-          activeNodePath={isMapVisible ? activeNodePath : []}
-          hasNodes={data.nodes && data.nodes.length > 0}
           onSendMessage={handleSendMessage}
-          onAddManualNode={handleAddManualNode}
-          onRenameNode={handleRenameNode}
           onEditNote={() => setIsNoteModalVisible(true)}
-          onClose={() => setActiveNodeId(null)}
-          onNodePress={handleNodePress}
         />
       )}
       {isMapVisible && activePageId && (
