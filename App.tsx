@@ -64,15 +64,10 @@ function MainApp() {
   const pendingNodeId = useMindMapStore(state => state.pendingNodeId);
   const setPendingNodeId = useMindMapStore(state => state.setPendingNodeId);
   const setPivotModalNodeId = useMindMapStore(state => state.setPivotModalNodeId);
-  const isNoteChatLoading = useMindMapStore(state => state.isNoteChatLoading);
   const paywallReason = useMindMapStore(state => state.paywallReason);
   const setPaywallReason = useMindMapStore(state => state.setPaywallReason);
   const setIsNoteModalVisible = useMindMapStore(state => state.setIsNoteModalVisible);
   
-  const handleAddManualNode = useMindMapStore(state => state.handleAddManualNode);
-  const handleUpdateNodeNote = useMindMapStore(state => state.handleUpdateNodeNote);
-  const handleRenameNode = useMindMapStore(state => state.handleRenameNode);
-  const handleToggleCollapse = useMindMapStore(state => state.handleToggleCollapse);
   const handleDeleteNode = useMindMapStore(state => state.setNodeIdToDelete);
   const handleNodePress = useMindMapStore(state => state.setActiveNodeId);
 

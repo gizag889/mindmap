@@ -1,7 +1,12 @@
 import { create, StateCreator } from 'zustand';
-import { MindMapData, MindMapNode } from '../types';
-import { calculateLayout } from '../utils/layout';
-import { deleteNodeAndChildren } from '../utils/nodeOperations';
+import { MindMapData } from '../types';
+import { 
+  deleteNodeAndChildren,
+  addManualNode,
+  updateNodeNote,
+  renameNode,
+  toggleNodeCollapse
+} from '../utils/nodeOperations';
 
 // -----------------------------
 // 1. Data Slice (コアデータと操作)
@@ -18,6 +23,7 @@ export interface DataSlice {
   cancelDeleteNode: () => void;
 }
 
+//MindMap:ストアの全体の型（他のSliceも含めたすべての状態） [],[]はミドルウェアの型で今回は空　DataSlice:のSlice自身が提供するデータと関数の型
 const createDataSlice: StateCreator<MindMapState, [], [], DataSlice> = (set, get) => ({
   data: { nodes: [], edges: [] },
   setData: (updater) => set((state) => ({
@@ -26,58 +32,29 @@ const createDataSlice: StateCreator<MindMapState, [], [], DataSlice> = (set, get
 
   handleAddManualNode: (label, parentId) => {
     if (!label.trim()) return;
-    set((state) => {
-      const newNodeId = `manual_${Date.now()}`;
-      const newNode: MindMapNode = {
-        id: newNodeId,
-        label: label.trim(),
-        parentId: parentId,
-      };
-      const newNodes = [...state.data.nodes, newNode];
-      const newEdges = [...state.data.edges];
-      if (parentId) {
-        newEdges.push({ source: parentId, target: newNodeId });
-      }
-      const rootId = state.data.nodes.length > 0 ? state.data.nodes[0].id : newNodeId;
-      const layoutedNodes = calculateLayout(newNodes, newEdges, rootId);
-      
-      return {
-        data: { nodes: layoutedNodes, edges: newEdges },
-        isMapVisible: true,
-      };
-    });
+    set((state) => ({
+      data: addManualNode(state.data, label, parentId),
+      isMapVisible: true,
+    }));
   },
 
   handleUpdateNodeNote: (id, note, images) => {
-    set((state) => {
-      const newNodes = state.data.nodes.map(node =>
-        node.id === id ? { ...node, note, ...(images && { images }) } : node
-      );
-      return { data: { ...state.data, nodes: newNodes } };
-    });
+    set((state) => ({
+      data: updateNodeNote(state.data, id, note, images)
+    }));
   },
 
   handleRenameNode: (id, newLabel) => {
     if (!newLabel.trim()) return;
-    set((state) => {
-      const newNodes = state.data.nodes.map(node =>
-        node.id === id ? { ...node, label: newLabel.trim() } : node
-      );
-      const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
-      const layoutedNodes = rootId ? calculateLayout(newNodes, state.data.edges, rootId) : newNodes;
-      return { data: { ...state.data, nodes: layoutedNodes } };
-    });
+    set((state) => ({
+      data: renameNode(state.data, id, newLabel)
+    }));
   },
 
   handleToggleCollapse: (id, isCollapsed) => {
-    set((state) => {
-      const newNodes = state.data.nodes.map(n => 
-        n.id === id ? { ...n, isCollapsed } : n
-      );
-      const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
-      const layoutedNodes = rootId ? calculateLayout(newNodes, state.data.edges, rootId) : newNodes;
-      return { data: { ...state.data, nodes: layoutedNodes } };
-    });
+    set((state) => ({
+      data: toggleNodeCollapse(state.data, id, isCollapsed)
+    }));
   },
 
   confirmDeleteNode: () => {
@@ -171,7 +148,10 @@ const createAsyncSlice: StateCreator<MindMapState, [], [], AsyncSlice> = (set) =
 // -----------------------------
 export type MindMapState = DataSlice & UISlice & AsyncSlice;
 
+//() が連続する書き方（カリー化と呼ばれます）をしていますが、これはTypeScriptのコンパイラが型（このStore全体の構造は MindMapState だよ、という情報）を正確に推論できるようにするためのZustand特有のテクニック
 export const useMindMapStore = create<MindMapState>()((...a) => ({
+  //(...a) は、「Zustandから渡される set, get, api をとりあえず a という1つの配列に全部まとめて受け取るよ」という意味
+  //(...a) を使うことで、「とりあえず全Sliceに3つセットで投げておくから、あとは各Slice側で自由に必要な分だけ受け取ってね！」という統一ルール
   ...createDataSlice(...a),
   ...createUISlice(...a),
   ...createAsyncSlice(...a),

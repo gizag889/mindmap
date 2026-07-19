@@ -1,4 +1,4 @@
-import { MindMapData } from '../types';
+import { MindMapData, MindMapNode } from '../types';
 import { calculateLayout } from './layout';
 
 export function deleteNodeAndChildren(data: MindMapData, idToDelete: string): MindMapData {
@@ -35,4 +35,46 @@ export function deleteNodeAndChildren(data: MindMapData, idToDelete: string): Mi
     nodes: layoutedNodes,
     edges: newEdges,
   };
+}
+
+export function addManualNode(data: MindMapData, label: string, parentId: string | null): MindMapData {
+  const newNodeId = `manual_${Date.now()}`;
+  const newNode: MindMapNode = {
+    id: newNodeId,
+    label: label.trim(),
+    parentId: parentId,
+  };
+  const newNodes = [...data.nodes, newNode];
+  const newEdges = [...data.edges];
+  if (parentId) {
+    newEdges.push({ source: parentId, target: newNodeId });
+  }
+  const rootId = data.nodes.length > 0 ? data.nodes[0].id : newNodeId;
+  const layoutedNodes = calculateLayout(newNodes, newEdges, rootId);
+  return { nodes: layoutedNodes, edges: newEdges };
+}
+
+export function updateNodeNote(data: MindMapData, id: string, note: string, images?: string[]): MindMapData {
+  const newNodes = data.nodes.map(node =>
+    node.id === id ? { ...node, note, ...(images && { images }) } : node
+  );
+  return { ...data, nodes: newNodes };
+}
+
+export function renameNode(data: MindMapData, id: string, newLabel: string): MindMapData {
+  const newNodes = data.nodes.map(node =>
+    node.id === id ? { ...node, label: newLabel.trim() } : node
+  );
+  const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
+  const layoutedNodes = rootId ? calculateLayout(newNodes, data.edges, rootId) : newNodes;
+  return { ...data, nodes: layoutedNodes };
+}
+
+export function toggleNodeCollapse(data: MindMapData, id: string, isCollapsed: boolean): MindMapData {
+  const newNodes = data.nodes.map(n => 
+    n.id === id ? { ...n, isCollapsed } : n
+  );
+  const rootId = newNodes.find(n => !n.parentId)?.id || newNodes[0]?.id;
+  const layoutedNodes = rootId ? calculateLayout(newNodes, data.edges, rootId) : newNodes;
+  return { ...data, nodes: layoutedNodes };
 }
