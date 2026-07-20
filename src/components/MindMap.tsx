@@ -59,25 +59,15 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
       const hitWidth = 140;
       const hitHeight = 60;
 
-      let clickedNodeId: string | null = null;
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
+      const clickedNode = [...nodes].reverse().find(node => {
         const nx = node.x || 0;
         const ny = node.y || 0;
+        return Math.abs(canvasX - nx) <= hitWidth / 2 && 
+               Math.abs(canvasY - ny) <= hitHeight / 2;
+      });
 
-        if (
-          canvasX >= nx - hitWidth / 2 &&
-          canvasX <= nx + hitWidth / 2 &&
-          canvasY >= ny - hitHeight / 2 &&
-          canvasY <= ny + hitHeight / 2
-        ) {
-          clickedNodeId = node.id;
-          break;
-        }
-      }
-
-      if (clickedNodeId !== null) {
-        onNodePress(clickedNodeId);
+      if (clickedNode) {
+        onNodePress(clickedNode.id);
       }
     });
 
@@ -94,25 +84,15 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes, edges, activeNodeId, on
       const hitWidth = 140;
       const hitHeight = 60;
 
-      let clickedNodeId: string | null = null;
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
+      const clickedNode = [...nodes].reverse().find(node => {
         const nx = node.x || 0;
         const ny = node.y || 0;
+        return Math.abs(canvasX - nx) <= hitWidth / 2 && 
+               Math.abs(canvasY - ny) <= hitHeight / 2;
+      });
 
-        if (
-          canvasX >= nx - hitWidth / 2 &&
-          canvasX <= nx + hitWidth / 2 &&
-          canvasY >= ny - hitHeight / 2 &&
-          canvasY <= ny + hitHeight / 2
-        ) {
-          clickedNodeId = node.id;
-          break;
-        }
-      }
-
-      if (clickedNodeId !== null) {
-        onNodeLongPress(clickedNodeId);
+      if (clickedNode) {
+        onNodeLongPress(clickedNode.id);
       }
     });
 
