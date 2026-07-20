@@ -26,12 +26,17 @@ export interface DataSlice {
 //MindMap:ストアの全体の型（他のSliceも含めたすべての状態） [],[]はミドルウェアの型で今回は空　DataSlice:のSlice自身が提供するデータと関数の型
 const createDataSlice: StateCreator<MindMapState, [], [], DataSlice> = (set, get) => ({
   data: { nodes: [], edges: [] },
+  //updater は、「単純な値」と「計算用の関数」のどちらが渡されても柔軟に受け止め、適切に処理を振り分けるための万能な受け皿
   setData: (updater) => set((state) => ({
     data: typeof updater === 'function' ? updater(state.data) : updater
   })),
 
+
+//setDataでデータを直接書き換えるのではなく、addManualNodeなどの操作関数を使ってデータを更新する。
+//なぜなら、ノードの追加や削除、更新が行われるたびに、全体のレイアウトを再計算する必要があるから。
   handleAddManualNode: (label, parentId) => {
     if (!label.trim()) return;
+    
     set((state) => ({
       data: addManualNode(state.data, label, parentId),
       isMapVisible: true,

@@ -22,6 +22,8 @@ export const NoteModal: React.FC<NoteModalProps> = ({ onSendChat }) => {
   
   const onClose = () => setIsNoteModalVisible(false);
 
+  //useMemo を使わずに直に記述した場合、モーダル内で文字を入力して画面が再描画されるたびに、毎回配列内を検索する処理（find）が走ってしまいます。
+  //そこで、data.nodes, activeNodeId, isMapVisible のいずれかが変更された場合のみ、再計算を行うようにしています。
   const node = React.useMemo(() => isMapVisible ? (data.nodes.find(n => n.id === activeNodeId) || null) : null, [data.nodes, activeNodeId, isMapVisible]);
 
   const activeNodePath = React.useMemo(() => {
